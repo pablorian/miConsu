@@ -2,7 +2,7 @@
   "name": "qrcode-monorepo",
   "private": true,
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build && pnpm --filter web run pages:build",
     "dev": "turbo run dev",
     "dev:tunnel": "/Users/pablo/.nvm/versions/node/v22.11.0/bin/pnpm --filter web run dev:tunnel",
     "lint": "turbo run lint",
