@@ -8,9 +8,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
-    turbopack: {
-      root: path.resolve(__dirname, '../../'),
-    }
+    outputFileTracingRoot: path.join(__dirname, '../../'),
   }
 };
 
