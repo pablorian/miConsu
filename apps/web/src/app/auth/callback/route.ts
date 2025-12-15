@@ -1,5 +1,5 @@
-import { type NextRequest, NextResponse } from 'next/server';
-import { getWorkOS, createSession, getClientId } from '@/lib/workos';
+import { NextRequest, NextResponse } from 'next/server';
+import { workos, clientId, createSession } from '@/lib/workos';
 import connectToDatabase, { User } from '@repo/database';
 
 export const dynamic = 'force-dynamic';
@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { user } = await getWorkOS().userManagement.authenticateWithCode({
-      clientId: getClientId(),
+    const { user } = await workos.userManagement.authenticateWithCode({
+      clientId,
       code,
     });
 

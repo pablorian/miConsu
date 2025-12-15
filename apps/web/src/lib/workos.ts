@@ -1,12 +1,10 @@
 import { WorkOS } from '@workos-inc/node';
 import { SignJWT, jwtVerify } from 'jose';
-import { env } from '@/env';
+import { env } from '../env';
 
-export const getWorkOS = () => new WorkOS(env.WORKOS_API_KEY);
+export const workos = new WorkOS(env.WORKOS_API_KEY);
 
-export const getClientId = () => {
-  return env.WORKOS_CLIENT_ID;
-};
+export const clientId = env.WORKOS_CLIENT_ID;
 
 const getSecret = () => new TextEncoder().encode(env.WORKOS_COOKIE_PASSWORD);
 

@@ -1,12 +1,12 @@
-import { getClientId, getWorkOS } from '@/lib/workos';
+import { workos, clientId } from '@/lib/workos';
 import { env } from '@/env';
 
 export const dynamic = 'force-dynamic';
 
 export default function LoginPage() {
-  const authorizationUrl = getWorkOS().userManagement.getAuthorizationUrl({
+  const authorizationUrl = workos.userManagement.getAuthorizationUrl({
     provider: 'GoogleOAuth',
-    clientId: getClientId(),
+    clientId: clientId,
     redirectUri: env.WORKOS_REDIRECT_URI,
   });
 
