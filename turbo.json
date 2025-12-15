@@ -3,6 +3,15 @@
   "globalDependencies": [
     "**/.env.*local"
   ],
+  "globalEnv": [
+    "MONGODB_URI",
+    "WORKOS_API_KEY",
+    "WORKOS_CLIENT_ID",
+    "WORKOS_COOKIE_PASSWORD",
+    "WORKOS_REDIRECT_URI",
+    "NEXT_PUBLIC_APP_URL",
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [
