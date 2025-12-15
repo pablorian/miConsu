@@ -1,5 +1,7 @@
 import { getClientId, getWorkOS } from '@/lib/workos';
 
+export const dynamic = 'force-dynamic';
+
 export default function LoginPage() {
   const authorizationUrl = getWorkOS().userManagement.getAuthorizationUrl({
     provider: 'GoogleOAuth',
