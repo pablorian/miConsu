@@ -4,6 +4,7 @@ import QRCodePackage from 'qrcode';
 import connectToDatabase, { QRCode, User } from '@repo/database';
 import { verifySession } from '@/lib/workos';
 import { nanoid } from 'nanoid';
+import { env } from '@/env';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     const shortId = nanoid(8); // Generate short ID
     // Dynamic URL
-    const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+    const origin = env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
     const redirectUrl = `${origin}/r/${shortId}`;
 
     const qrImage = await QRCodePackage.toDataURL(redirectUrl);
