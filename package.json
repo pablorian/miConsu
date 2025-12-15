@@ -1,0 +1,19 @@
+{
+  "name": "qrcode-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "dev:tunnel": "/Users/pablo/.nvm/versions/node/v22.11.0/bin/pnpm --filter web run dev:tunnel",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "latest"
+  },
+  "packageManager": "pnpm@9.1.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "dev:tunnel": "node scripts/dev-with-tunnel.js",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@repo/database": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/geoip-lite": "^1.4.4",
+    "@workos-inc/node": "latest",
+    "geoip-lite": "^1.4.10",
+    "jose": "latest",
+    "mongodb": "^7.0.0",
+    "mongoose": "^9.0.1",
+    "nanoid": "^5.1.6",
+    "next": "latest",
+    "qrcode": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "useragent": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/qrcode": "latest",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/useragent": "^2.3.4",
+    "eslint": "latest",
+    "eslint-config-next": "latest",
+    "postcss": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest"
+  }
+}
