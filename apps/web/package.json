@@ -12,9 +12,7 @@
   "dependencies": {
     "@repo/database": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
-    "@types/geoip-lite": "^1.4.4",
     "@workos-inc/node": "latest",
-    "geoip-lite": "^1.4.10",
     "jose": "latest",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.1",

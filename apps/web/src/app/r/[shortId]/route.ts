@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import connectToDatabase, { QRCode, Scan } from '@repo/database';
 import useragent from 'useragent';
-import geoip from 'geoip-lite';
+
 
 export async function GET(
   request: NextRequest,
@@ -31,20 +31,28 @@ export async function GET(
     let country = 'Unknown';
     let city = 'Unknown';
 
-    // Check for local/private IPs
-    const cleanIp = ip.split(',')[0].trim();
-    if (cleanIp === '::1' || cleanIp === '127.0.0.1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.') || cleanIp.startsWith('172.')) {
-      city = 'Local Network';
-      country = 'Private';
-    } else {
-      try {
-        const geo = geoip.lookup(cleanIp);
-        if (geo) {
-          country = geo.country || 'Unknown';
-          city = geo.city || 'Unknown';
-        }
-      } catch (e) {
-        console.error('Geo lookup failed:', e);
+    // Prioritize Cloudflare / Vercel headers
+    // Cloudflare: CF-IPCountry
+    // Vercel: x-vercel-ip-country, x-vercel-ip-city
+    const cfCountry = request.headers.get('cf-ipcountry');
+    const cfCity = request.headers.get('cf-ipcity');
+    const vercelCountry = request.headers.get('x-vercel-ip-country');
+    const vercelCity = request.headers.get('x-vercel-ip-city');
+
+    if (cfCountry) {
+      country = cfCountry;
+      city = cfCity || 'Unknown';
+    } else if (vercelCountry) {
+      country = vercelCountry;
+      city = vercelCity || 'Unknown';
+    }
+
+    // Check for local/private IPs fallback behavior
+    if (country === 'Unknown') {
+      const cleanIp = ip.split(',')[0].trim();
+      if (cleanIp === '::1' || cleanIp === '127.0.0.1' || cleanIp.startsWith('192.168.') || cleanIp.startsWith('10.') || cleanIp.startsWith('172.')) {
+        city = 'Local Network';
+        country = 'Private';
       }
     }
 

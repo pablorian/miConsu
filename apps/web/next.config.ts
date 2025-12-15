@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['mongoose', 'mongodb', '@repo/database', 'geoip-lite'],
+  serverExternalPackages: ['mongoose', 'mongodb', '@repo/database'],
   eslint: {
     ignoreDuringBuilds: true,
   },
