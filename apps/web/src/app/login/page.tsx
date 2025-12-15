@@ -1,7 +1,7 @@
-import { getClientId, workos } from '@/lib/workos';
+import { getClientId, getWorkOS } from '@/lib/workos';
 
 export default function LoginPage() {
-  const authorizationUrl = workos.userManagement.getAuthorizationUrl({
+  const authorizationUrl = getWorkOS().userManagement.getAuthorizationUrl({
     provider: 'GoogleOAuth',
     clientId: getClientId(),
     redirectUri: process.env.WORKOS_REDIRECT_URI || 'http://localhost:3000/auth/callback',

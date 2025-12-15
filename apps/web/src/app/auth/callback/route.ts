@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { workos, createSession, getClientId } from '@/lib/workos';
+import { getWorkOS, createSession, getClientId } from '@/lib/workos';
 import connectToDatabase, { User } from '@repo/database';
 
 export async function GET(request: NextRequest) {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { user } = await workos.userManagement.authenticateWithCode({
+    const { user } = await getWorkOS().userManagement.authenticateWithCode({
       clientId: getClientId(),
       code,
     });
