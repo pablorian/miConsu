@@ -1,7 +1,10 @@
 'use client';
 
+
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface QRCodeData {
   _id: string;
@@ -13,6 +16,7 @@ interface QRCodeData {
 }
 
 export default function Dashboard() {
+  const t = useTranslations('Dashboard');
   const [url, setUrl] = useState('');
   const [qrs, setQrs] = useState<QRCodeData[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,10 +66,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen p-8 md:p-24 bg-gray-50 dark:bg-zinc-900 text-foreground">
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">{t('title')}</h1>
+      </div>
 
       <div className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-md mb-8">
-        <h2 className="text-xl font-semibold mb-4">Create New QR Code</h2>
+        <h2 className="text-xl font-semibold mb-4">{t('create')}</h2>
         <form onSubmit={handleSubmit} className="flex gap-4">
           <input
             type="url"
@@ -86,6 +92,9 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {qrs.length === 0 && !loading && (
+          <p className="col-span-full text-center text-gray-500">{t('noQRCodes')}</p>
+        )}
         {qrs.map((qr) => (
           <div key={qr._id} className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-md flex flex-col items-center relative group">
             <span className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-blue-200 dark:text-blue-800">

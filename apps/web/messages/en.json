@@ -1,0 +1,15 @@
+{
+  "HomePage": {
+    "title": "Welcome to QR Code Generator",
+    "getStarted": "Get Started"
+  },
+  "Login": {
+    "title": "Login",
+    "signInWithGoogle": "Sign in with Google"
+  },
+  "Dashboard": {
+    "title": "Your QR Codes",
+    "create": "Create New QR Code",
+    "noQRCodes": "No QR codes found"
+  }
+}

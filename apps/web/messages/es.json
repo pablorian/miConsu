@@ -1,0 +1,15 @@
+{
+  "HomePage": {
+    "title": "Bienvenido al Generador de Códigos QR",
+    "getStarted": "Comenzar"
+  },
+  "Login": {
+    "title": "Iniciar Sesión",
+    "signInWithGoogle": "Iniciar sesión con Google"
+  },
+  "Dashboard": {
+    "title": "Tus Códigos QR",
+    "create": "Crear Nuevo Código QR",
+    "noQRCodes": "No se encontraron códigos QR"
+  }
+}

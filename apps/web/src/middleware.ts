@@ -1,35 +1,23 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { verifySession } from './lib/workos';
+import createMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
+// Middleware to force language selection via query param
+export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Public routes
-  if (['/', '/login', '/pricing', '/auth/callback'].includes(pathname)) {
-    if (token && pathname === '/login') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    return NextResponse.next();
+  // 1. Handle ?lang=es override
+  const lang = request.nextUrl.searchParams.get('lang');
+  if (lang && ['en', 'es'].includes(lang)) {
+    const response = NextResponse.redirect(new URL(pathname, request.url));
+    response.cookies.set('NEXT_LOCALE', lang, { path: '/', maxAge: 31536000 });
+    return response;
   }
 
-  // Protected routes
-  if (pathname.startsWith('/dashboard')) {
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    const user = await verifySession(token);
-    if (!user) {
-      // Invalid token
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-  }
-
-  return NextResponse.next();
+  const intlMiddleware = createMiddleware(routing);
+  return intlMiddleware(request);
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|auth|r|_next|.*\\..*).*)']
 };
