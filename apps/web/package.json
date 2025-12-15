@@ -24,6 +24,7 @@
     "useragent": "^2.3.0"
   },
   "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@types/node": "latest",
     "@types/qrcode": "latest",
     "@types/react": "latest",
