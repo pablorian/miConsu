@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { workos, createSession, getClientId } from '@/lib/workos';
 import connectToDatabase, { User } from '@repo/database';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
   const error = request.nextUrl.searchParams.get('error');
