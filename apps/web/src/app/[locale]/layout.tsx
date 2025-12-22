@@ -29,9 +29,6 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <div className="absolute top-4 right-4 z-50">
-        <LanguageSwitcher />
-      </div>
       {children}
     </NextIntlClientProvider>
   );

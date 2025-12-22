@@ -19,7 +19,7 @@ export async function GET(
 
     await connectToDatabase();
 
-    const qr = await QRCode.findOne({ _id: id, userId: user.id || user.sub });
+    const qr = await QRCode.findOne({ shortId: id, userId: user.id || user.sub });
 
     if (!qr) {
       return NextResponse.json({ error: 'QR Code not found' }, { status: 404 });
@@ -49,20 +49,16 @@ export async function DELETE(
 
     await connectToDatabase();
 
-    // Verify ownership and delete
-    const result = await QRCode.findOneAndDelete({
-      _id: id,
-      userId: user.id || user.sub,
-    });
+    const qr = await QRCode.findOneAndDelete({ shortId: id, userId: user.id || user.sub });
 
-    if (!result) {
-      return NextResponse.json({ error: 'QR Code not found or unauthorized' }, { status: 404 });
+    if (!qr) {
+      return NextResponse.json({ error: 'QR Code not found' }, { status: 404 });
     }
 
-    // Optional: Delete associated scans to clean up
-    await Scan.deleteMany({ qrCodeId: id });
+    // Optional: Delete associated scans?
+    await Scan.deleteMany({ qrCodeId: qr._id });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: 'Deleted successfully' });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Premium Light Theme (Slate + Royal Blue) */
+  --background: #f8fafc; /* Slate-50 */
+  --foreground: #0f172a; /* Slate-900 */
+  
+  --primary: #2563eb; /* Blue-600 */
+  --primary-foreground: #ffffff;
+  
+  --sidebar-bg: #ffffff;
+  --sidebar-fg: #475569; /* Slate-600 */
+  --sidebar-active: #eff6ff; /* Blue-50 */
+  --sidebar-active-fg: #2563eb; /* Blue-600 */
+  
+  --header-bg: #ffffff;
+  --header-border: #e2e8f0; /* Slate-200 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-fg: var(--sidebar-fg);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-fg: var(--sidebar-active-fg);
+  
+  --color-header: var(--header-bg);
+  --color-header-border: var(--header-border);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Premium Dark Theme (Deep Slate) */
+    --background: #0f172a; /* Slate-900 */
+    --foreground: #f8fafc; /* Slate-50 */
+    
+    --primary: #3b82f6; /* Blue-500 */
+    --primary-foreground: #ffffff;
+    
+    --sidebar-bg: #1e293b; /* Slate-800 */
+    --sidebar-fg: #94a3b8; /* Slate-400 */
+    --sidebar-active: #334155; /* Slate-700 */
+    --sidebar-active-fg: #ffffff;
+    
+    --header-bg: #1e293b;
+    --header-border: #334155; /* Slate-700 */
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+

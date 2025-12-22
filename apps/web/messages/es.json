@@ -1,15 +1,94 @@
 {
   "HomePage": {
-    "title": "Bienvenido al Generador de Códigos QR",
-    "getStarted": "Comenzar"
+    "title": "Generador de Códigos QR",
+    "subtitle": "Simple y Hermoso.",
+    "description": "Genera, rastrea y gestiona tus códigos QR con nuestra plataforma profesional. Perfecto para marketing, eventos y operaciones comerciales.",
+    "getStarted": "Comenzar",
+    "viewPricing": "Totalmente Gratis",
+    "features": {
+      "analyticsTitle": "Analítica Avanzada",
+      "analyticsDesc": "Rastrea escaneos, ubicaciones, dispositivos y tiempo para entender mejor a tu audiencia.",
+      "securityTitle": "Seguridad Empresarial",
+      "securityDesc": "SSO, control de acceso basado en roles y cumplimiento de GDPR integrados."
+    }
+  },
+  "Pricing": {
+    "title": "Planes de Precios",
+    "free": {
+      "title": "Gratis",
+      "price": "$0",
+      "period": "/mes",
+      "mostPopular": "MÁS POPULAR",
+      "features": [
+        "Códigos QR Ilimitados",
+        "Analítica Básica",
+        "Soporte Estándar"
+      ],
+      "cta": "Plan Actual"
+    },
+    "pro": {
+      "title": "Pro",
+      "price": "$15",
+      "period": "/mes",
+      "features": [
+        "Códigos QR Ilimitados",
+        "Analítica Avanzada",
+        "Diseños Personalizados",
+        "Soporte Prioritario"
+      ],
+      "cta": "Incluido en Gratis"
+    },
+    "enterprise": {
+      "title": "Empresarial",
+      "price": "A medida",
+      "features": [
+        "SSO (WorkOS)",
+        "Gerente Dedicado",
+        "SLA"
+      ],
+      "cta": "Incluido en Gratis"
+    }
   },
   "Login": {
-    "title": "Iniciar Sesión",
-    "signInWithGoogle": "Iniciar sesión con Google"
+    "title": "Crear una cuenta",
+    "subtitle": "Ingresa tu correo electrónico para crear tu cuenta",
+    "signInWithGoogle": "Iniciar sesión con Google",
+    "agreement": "Al hacer clic en continuar, aceptas nuestros",
+    "terms": "Términos de Servicio",
+    "and": "y",
+    "privacy": "Política de Privacidad",
+    "testimonial": {
+      "quote": "Esta plataforma ha revolucionado la forma en que gestionamos el marketing de nuestros eventos. Generar y rastrear códigos QR es ahora fácil e increíblemente rápido.",
+      "author": "Sofia Davis"
+    }
   },
   "Dashboard": {
     "title": "Tus Códigos QR",
     "create": "Crear Nuevo Código QR",
-    "noQRCodes": "No se encontraron códigos QR"
+    "createNew": "Crear Nuevo Código QR",
+    "generate": "Generar",
+    "generating": "Generando...",
+    "noQRCodes": "No se encontraron códigos QR",
+    "scans": "Escaneos",
+    "download": "Descargar",
+    "details": "Detalles",
+    "QRDetails": {
+      "backToDashboard": "Volver al Dashboard",
+      "downloadPNG": "Descargar PNG",
+      "createdOn": "Creado el",
+      "analyticsSummary": "Resumen de Analítica",
+      "totalScans": "Escaneos Totales",
+      "topLocation": "Ubicación Top",
+      "topDevice": "Dispositivo Top",
+      "scanHistory": "Historial de Escaneos",
+      "events": "Eventos",
+      "time": "Hora",
+      "device": "Dispositivo",
+      "os": "SO",
+      "location": "Ubicación",
+      "ipAddress": "Dirección IP",
+      "noScans": "Aún no hay escaneos",
+      "noHistory": "No hay historial disponible"
+    }
   }
 }

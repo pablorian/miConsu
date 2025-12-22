@@ -1,15 +1,94 @@
 {
   "HomePage": {
     "title": "Welcome to QR Code Generator",
-    "getStarted": "Get Started"
+    "subtitle": "Made Simple and Beautiful.",
+    "description": "Generate, track, and manage your QR codes with our professional platform. Perfect for marketing, events, and business operations.",
+    "getStarted": "Get Started",
+    "viewPricing": "Completely Free",
+    "features": {
+      "analyticsTitle": "Advanced Analytics",
+      "analyticsDesc": "Track scans, locations, devices, and time to understand your audience better.",
+      "securityTitle": "Enterprise Security",
+      "securityDesc": "SSO, role-based access control, and GDPR compliance built right in."
+    }
+  },
+  "Pricing": {
+    "title": "Pricing Plans",
+    "free": {
+      "title": "Free",
+      "price": "$0",
+      "period": "/mo",
+      "mostPopular": "MOST POPULAR",
+      "features": [
+        "Unlimited QR Codes",
+        "Basic Analytics",
+        "Standard Support"
+      ],
+      "cta": "Current Plan"
+    },
+    "pro": {
+      "title": "Pro",
+      "price": "$15",
+      "period": "/mo",
+      "features": [
+        "Unlimited QR Codes",
+        "Advanced Analytics",
+        "Custom Designs",
+        "Priority Support"
+      ],
+      "cta": "Included in Free"
+    },
+    "enterprise": {
+      "title": "Enterprise",
+      "price": "Custom",
+      "features": [
+        "SSO (WorkOS)",
+        "Dedicated Manager",
+        "SLA"
+      ],
+      "cta": "Included in Free"
+    }
   },
   "Login": {
-    "title": "Login",
-    "signInWithGoogle": "Sign in with Google"
+    "title": "Create an account",
+    "subtitle": "Enter your email below to create your account",
+    "signInWithGoogle": "Sign in with Google",
+    "agreement": "By clicking continue, you agree to our",
+    "terms": "Terms of Service",
+    "and": "and",
+    "privacy": "Privacy Policy",
+    "testimonial": {
+      "quote": "This platform has revolutionized how we manage our event marketing. Generating and tracking QR codes is now effortless and incredibly fast.",
+      "author": "Sofia Davis"
+    }
   },
   "Dashboard": {
     "title": "Your QR Codes",
     "create": "Create New QR Code",
-    "noQRCodes": "No QR codes found"
+    "createNew": "Create New QR Code",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "noQRCodes": "No QR codes found",
+    "scans": "Scans",
+    "download": "Download",
+    "details": "Details",
+    "QRDetails": {
+      "backToDashboard": "Back to Dashboard",
+      "downloadPNG": "Download PNG",
+      "createdOn": "Created on",
+      "analyticsSummary": "Analytics Summary",
+      "totalScans": "Total Scans",
+      "topLocation": "Top Location",
+      "topDevice": "Top Device",
+      "scanHistory": "Scan History",
+      "events": "Events",
+      "time": "Time",
+      "device": "Device",
+      "os": "OS",
+      "location": "Location",
+      "ipAddress": "IP Address",
+      "noScans": "No scans yet",
+      "noHistory": "No scan history available yet"
+    }
   }
 }
