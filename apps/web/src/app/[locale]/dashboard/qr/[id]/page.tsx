@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import DownloadOptions from '@/components/DownloadOptions';
 
 interface Scan {
   _id: string;
@@ -50,21 +51,39 @@ export default function QRDetails({ params }: { params: Promise<{ id: string }> 
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="p-8">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-pulse">
+        {/* Left Column Skeleton */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-96 p-6 flex flex-col items-center">
+            <div className="w-56 h-56 bg-gray-200 dark:bg-zinc-700 rounded-lg mb-6"></div>
+            <div className="h-6 w-32 bg-gray-200 dark:bg-zinc-700 rounded mb-2"></div>
+            <div className="h-4 w-48 bg-gray-200 dark:bg-zinc-700 rounded mb-6"></div>
+            <div className="h-10 w-full bg-gray-200 dark:bg-zinc-700 rounded"></div>
+          </div>
+        </div>
+
+        {/* Right Column Skeleton */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white dark:bg-zinc-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-32">
+                <div className="h-10 w-10 bg-gray-200 dark:bg-zinc-700 rounded mb-4"></div>
+                <div className="h-6 w-24 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 h-96"></div>
+        </div>
+      </div>
+    );
+  }
   if (error) return <div className="p-8 text-red-500">Error: {error}</div>;
   if (!qr) return <div className="p-8">QR Code not found</div>;
 
   return (
     <div className="min-h-screen text-foreground space-y-8">
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.back()}
-          className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-          {t('backToDashboard')}
-        </button>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column: QR Code & Main Info */}
@@ -77,14 +96,11 @@ export default function QRDetails({ params }: { params: Promise<{ id: string }> 
               <h1 className="text-2xl font-bold text-center mb-1">{qr.shortId}</h1>
               <p className="text-sm text-gray-500 break-all text-center mb-6 px-4">{qr.url}</p>
 
-              <a
-                href={qr.qrImage}
-                download={`qr-${qr.shortId}.png`}
-                className="w-full inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all active:scale-95"
-              >
-                <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                {t('downloadPNG')}
-              </a>
+              <div className="w-full flex justify-center">
+                <div className="max-w-xs">
+                  <DownloadOptions url={qr.url} fileName={`qr-${qr.shortId}`} />
+                </div>
+              </div>
             </div>
             <div className="bg-gray-50 dark:bg-zinc-900/50 p-4 border-t border-gray-200 dark:border-gray-700 text-center">
               <p className="text-xs text-gray-500">
