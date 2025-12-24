@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
 
-export const alt = 'QRCode PrianCo';
+export const alt = 'Mi Proyecto';
 export const size = {
   width: 1200,
   height: 630,
@@ -39,7 +39,7 @@ export default async function Image() {
             <div style={{ width: '60px', height: '60px', background: 'white', borderRadius: '4px' }}></div>
           </div>
           <div style={{ fontSize: 80, fontWeight: 'bold', color: '#111827', display: 'flex' }}>
-            QRCode PrianCo
+            Mi Proyecto
           </div>
         </div>
         <div style={{ marginTop: '20px', fontSize: 32, color: '#6B7280' }}>

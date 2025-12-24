@@ -1,15 +1,15 @@
 {
   "HomePage": {
-    "title": "Generador de Códigos QR",
+    "title": "Bienvenido a Mi Proyecto",
     "subtitle": "Simple y Hermoso.",
-    "description": "Genera, rastrea y gestiona tus códigos QR con nuestra plataforma profesional. Perfecto para marketing, eventos y operaciones comerciales.",
+    "description": "La descripción de tu nuevo proyecto va aquí.",
     "getStarted": "Comenzar",
     "viewPricing": "Totalmente Gratis",
     "features": {
-      "analyticsTitle": "Analítica Avanzada",
-      "analyticsDesc": "Rastrea escaneos, ubicaciones, dispositivos y tiempo para entender mejor a tu audiencia.",
-      "securityTitle": "Seguridad Empresarial",
-      "securityDesc": "SSO, control de acceso basado en roles y cumplimiento de GDPR integrados."
+      "analyticsTitle": "Característica 1",
+      "analyticsDesc": "Descripción de la característica 1.",
+      "securityTitle": "Característica 2",
+      "securityDesc": "Descripción de la característica 2."
     }
   },
   "Pricing": {
@@ -20,9 +20,9 @@
       "period": "/mes",
       "mostPopular": "MÁS POPULAR",
       "features": [
-        "Códigos QR Ilimitados",
-        "Analítica Básica",
-        "Soporte Estándar"
+        "Característica A",
+        "Característica B",
+        "Característica C"
       ],
       "cta": "Plan Actual"
     },
@@ -31,10 +31,10 @@
       "price": "$15",
       "period": "/mes",
       "features": [
-        "Códigos QR Ilimitados",
-        "Analítica Avanzada",
-        "Diseños Personalizados",
-        "Soporte Prioritario"
+        "Característica A",
+        "Característica B",
+        "Característica C",
+        "Característica D"
       ],
       "cta": "Incluido en Gratis"
     },
@@ -42,9 +42,9 @@
       "title": "Empresarial",
       "price": "A medida",
       "features": [
-        "SSO (WorkOS)",
-        "Gerente Dedicado",
-        "SLA"
+        "Característica A",
+        "Característica B",
+        "Característica C"
       ],
       "cta": "Incluido en Gratis"
     }
@@ -58,36 +58,39 @@
     "and": "y",
     "privacy": "Política de Privacidad",
     "testimonial": {
-      "quote": "Esta plataforma ha revolucionado la forma en que gestionamos el marketing de nuestros eventos. Generar y rastrear códigos QR es ahora fácil e increíblemente rápido.",
+      "quote": "Esta plataforma ha revolucionado la forma en que gestionamos nuestros proyectos.",
       "author": "Sofia Davis"
     }
   },
   "Dashboard": {
-    "title": "Tus Códigos QR",
-    "create": "Crear Nuevo Código QR",
-    "createNew": "Crear Nuevo Código QR",
-    "generate": "Generar",
-    "generating": "Generando...",
-    "noQRCodes": "No se encontraron códigos QR",
-    "scans": "Escaneos",
+    "title": "Dashboard",
+    "welcomeTitle": "Bienvenida",
+    "welcomeSubtitle": "Bienvenido a tu proyecto",
+    "welcomeBody": "Esta es tu nueva plantilla de proyecto.",
+    "create": "Crear Nuevo",
+    "createNew": "Crear Nuevo Item",
+    "generate": "Crear",
+    "generating": "Creando...",
+    "noQRCodes": "No se encontraron items",
+    "scans": "Vistas",
     "download": "Descargar",
     "details": "Detalles",
     "QRDetails": {
       "backToDashboard": "Volver al Dashboard",
-      "downloadPNG": "Descargar PNG",
+      "downloadPNG": "Descargar",
       "createdOn": "Creado el",
       "analyticsSummary": "Resumen de Analítica",
-      "totalScans": "Escaneos Totales",
+      "totalScans": "Vistas Totales",
       "topLocation": "Ubicación Top",
       "topDevice": "Dispositivo Top",
-      "scanHistory": "Historial de Escaneos",
+      "scanHistory": "Historial",
       "events": "Eventos",
       "time": "Hora",
       "device": "Dispositivo",
       "os": "SO",
       "location": "Ubicación",
       "ipAddress": "Dirección IP",
-      "noScans": "Aún no hay escaneos",
+      "noScans": "Aún no hay datos",
       "noHistory": "No hay historial disponible"
     }
   }

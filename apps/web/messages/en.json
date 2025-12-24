@@ -1,15 +1,15 @@
 {
   "HomePage": {
-    "title": "Welcome to QR Code Generator",
+    "title": "Welcome to Mi Proyecto",
     "subtitle": "Made Simple and Beautiful.",
-    "description": "Generate, track, and manage your QR codes with our professional platform. Perfect for marketing, events, and business operations.",
+    "description": "Your new project template description goes here.",
     "getStarted": "Get Started",
     "viewPricing": "Completely Free",
     "features": {
-      "analyticsTitle": "Advanced Analytics",
-      "analyticsDesc": "Track scans, locations, devices, and time to understand your audience better.",
-      "securityTitle": "Enterprise Security",
-      "securityDesc": "SSO, role-based access control, and GDPR compliance built right in."
+      "analyticsTitle": "Feature 1",
+      "analyticsDesc": "Description for feature 1.",
+      "securityTitle": "Feature 2",
+      "securityDesc": "Description for feature 2."
     }
   },
   "Pricing": {
@@ -20,9 +20,9 @@
       "period": "/mo",
       "mostPopular": "MOST POPULAR",
       "features": [
-        "Unlimited QR Codes",
-        "Basic Analytics",
-        "Standard Support"
+        "Feature A",
+        "Feature B",
+        "Feature C"
       ],
       "cta": "Current Plan"
     },
@@ -31,10 +31,10 @@
       "price": "$15",
       "period": "/mo",
       "features": [
-        "Unlimited QR Codes",
-        "Advanced Analytics",
-        "Custom Designs",
-        "Priority Support"
+        "Feature A",
+        "Feature B",
+        "Feature C",
+        "Feature D"
       ],
       "cta": "Included in Free"
     },
@@ -42,9 +42,9 @@
       "title": "Enterprise",
       "price": "Custom",
       "features": [
-        "SSO (WorkOS)",
-        "Dedicated Manager",
-        "SLA"
+        "Feature A",
+        "Feature B",
+        "Feature C"
       ],
       "cta": "Included in Free"
     }
@@ -58,37 +58,40 @@
     "and": "and",
     "privacy": "Privacy Policy",
     "testimonial": {
-      "quote": "This platform has revolutionized how we manage our event marketing. Generating and tracking QR codes is now effortless and incredibly fast.",
+      "quote": "This platform has revolutionized how we manage our projects.",
       "author": "Sofia Davis"
     }
   },
   "Dashboard": {
-    "title": "Your QR Codes",
-    "create": "Create New QR Code",
-    "createNew": "Create New QR Code",
-    "generate": "Generate",
-    "generating": "Generating...",
-    "noQRCodes": "No QR codes found",
-    "scans": "Scans",
+    "title": "Dashboard",
+    "welcomeTitle": "Welcome",
+    "welcomeSubtitle": "Welcome to your project",
+    "welcomeBody": "This is your new project template.",
+    "create": "Create New",
+    "createNew": "Create New Item",
+    "generate": "Create",
+    "generating": "Creating...",
+    "noQRCodes": "No items found",
+    "scans": "Views",
     "download": "Download",
     "details": "Details",
     "QRDetails": {
       "backToDashboard": "Back to Dashboard",
-      "downloadPNG": "Download PNG",
+      "downloadPNG": "Download",
       "createdOn": "Created on",
       "analyticsSummary": "Analytics Summary",
-      "totalScans": "Total Scans",
+      "totalScans": "Total Views",
       "topLocation": "Top Location",
       "topDevice": "Top Device",
-      "scanHistory": "Scan History",
+      "scanHistory": "History",
       "events": "Events",
       "time": "Time",
       "device": "Device",
       "os": "OS",
       "location": "Location",
       "ipAddress": "IP Address",
-      "noScans": "No scans yet",
-      "noHistory": "No scan history available yet"
+      "noScans": "No data yet",
+      "noHistory": "No history available yet"
     }
   }
 }

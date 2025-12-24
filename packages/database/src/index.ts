@@ -43,8 +43,7 @@ async function connectToDatabase() {
   return cached.conn;
 }
 
-export * from './models/QRCode';
+
 export * from './models/User';
-export * from './models/Scan';
 
 export default connectToDatabase;

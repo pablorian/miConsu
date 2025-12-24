@@ -1,5 +1,5 @@
 {
-  "name": "web",
+  "name": "mi-proyecto-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -16,21 +16,16 @@
     "jose": "latest",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.1",
-    "nanoid": "^5.1.6",
     "next": "latest",
     "next-intl": "^4.6.0",
-    "qrcode": "latest",
     "react": "latest",
-    "react-dom": "latest",
-    "useragent": "^2.3.0"
+    "react-dom": "latest"
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.16",
     "@types/node": "latest",
-    "@types/qrcode": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/useragent": "^2.3.4",
     "eslint": "latest",
     "eslint-config-next": "latest",
     "postcss": "latest",
