@@ -12,7 +12,7 @@ Actúa como un arquitecto de software experto y desarrollador full-stack. Quiero
 La temática del proyecto es: **[TEMATICA]**.
 
 ### Stack Tecnológico (Obligatorio)
-Utiliza exactamente estas tecnologías y versiones (basadas en un proyecto de referencia exitoso "Mi Proyecto"):
+Utiliza exactamente estas tecnologías y versiones (basadas en un proyecto de referencia exitoso "miConsu"):
 
 1.  **Framework**: Next.js 15+ (App Router).
 2.  **Lenguaje**: TypeScript.

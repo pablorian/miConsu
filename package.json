@@ -1,5 +1,5 @@
 {
-  "name": "mi-proyecto",
+  "name": "mi-consu",
   "private": true,
   "scripts": {
     "build": "turbo run build",

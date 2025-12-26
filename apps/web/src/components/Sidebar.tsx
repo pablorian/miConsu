@@ -66,7 +66,7 @@ export default function Sidebar({ isOpen, onClose, user }: SidebarProps) {
       >
         <div>
           <div className="flex h-16 items-center justify-center border-b border-header-border">
-            <span className="text-xl font-bold text-primary">Mi Proyecto</span>
+            <span className="text-xl font-bold text-primary">miConsu</span>
           </div>
 
           <div className="py-4">
