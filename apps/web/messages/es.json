@@ -204,10 +204,36 @@
       "confirmDeleteServiceRecord": "¿Está seguro que desea eliminar este registro?",
       "actions": "Acciones",
       "realized": "Realizado",
-      "todo": "Pendiente"
+      "todo": "Pendiente",
+      "implant": "Implante",
+      "unerupted": "No erupcionado",
+      "fixedProsthesis": "Prótesis Fija",
+      "removableProsthesis": "Prótesis Removible",
+      "files": "Archivos",
+      "uploadFile": "Subir Archivo",
+      "noFiles": "No hay archivos subidos para este paciente.",
+      "deleteFileConfirm": "¿Está seguro que desea eliminar este archivo?",
+      "uploading": "Subiendo...",
+      "connectGoogleDrive": "Conectá Google Drive para subir archivos"
+    },
+    "Settings": {
+      "title": "Configuración",
+      "subtitle": "Gestioná la configuración de tu cuenta e integraciones.",
+      "calComTitle": "Integración Cal.com",
+      "timezone": "Zona Horaria",
+      "publicProfile": "Perfil Público",
+      "publicIdLabel": "ID de Usuario (URL)",
+      "publicIdPlaceholder": "ej: dr-pablo-garcia",
+      "save": "Guardar",
+      "saving": "Guardando...",
+      "saved": "Guardado",
+      "error": "Error al guardar",
+      "idTaken": "Este ID ya está en uso",
+      "invalidFormat": "Formato inválido (solo letras minúsculas, números y guiones)"
     },
     "calendarExternal": "Calendario Externo",
-    "patients": "Pacientes"
+    "patients": "Pacientes",
+    "settings": "Configuración"
   },
   "CalCom": {
     "title": "Integración con Cal.com",

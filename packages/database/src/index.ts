@@ -49,5 +49,6 @@ export * from './models/Appointment';
 export * from './models/Patient';
 export * from './models/DentalRecord';
 export * from './models/ServiceRecord';
+export * from './models/PatientFile';
 
 export default connectToDatabase;

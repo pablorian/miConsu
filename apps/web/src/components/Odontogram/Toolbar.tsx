@@ -15,9 +15,13 @@ const Toolbar: React.FC<ToolbarProps> = ({ activeTool, onSelectTool, recordState
     { id: 'healthy', color: 'white', label: t('healthy'), border: 'gray' },
     { id: 'caries', color: 'transparent', label: t('caries'), border: 'red', text: 'C' },
     { id: 'filling', color: 'transparent', label: t('filling'), border: 'blue', text: 'O' },
-    { id: 'missing', color: 'transparent', label: t('missing'), icon: 'X', border: 'black' },
     { id: 'crown', color: 'transparent', label: t('crown'), border: 'orange', text: 'Co' },
     { id: 'endodontics', color: 'transparent', label: t('endodontics'), border: 'green', text: 'E' },
+    { id: 'implant', color: 'transparent', label: t('implant'), border: 'purple', text: 'I' },
+    { id: 'unerupted', color: 'transparent', label: t('unerupted'), border: 'gray', text: 'NE' },
+    { id: 'fixedProsthesis', color: 'transparent', label: t('fixedProsthesis'), border: 'teal', text: 'PF' },
+    { id: 'removableProsthesis', color: 'transparent', label: t('removableProsthesis'), border: 'indigo', text: 'PR' },
+    { id: 'missing', color: 'transparent', label: t('missing'), icon: 'X', border: 'black' },
   ];
 
   return (

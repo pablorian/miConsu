@@ -39,7 +39,7 @@ const Odontogram: React.FC<OdontogramProps> = ({ initialData = [], onChange }) =
       newData = [...teethData];
       newData[index] = { ...newData[index], ...updates };
     } else {
-      newData = [...teethData, { toothNumber: id, status: 'present', ...updates }];
+      newData = [...teethData, { toothNumber: id, status: 'present', surfaces: {}, ...updates }];
     }
 
     setTeethData(newData);

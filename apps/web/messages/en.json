@@ -204,10 +204,36 @@
       "confirmDeleteServiceRecord": "Are you sure you want to delete this service record?",
       "actions": "Actions",
       "realized": "Realized",
-      "todo": "To Do"
+      "todo": "To Do",
+      "implant": "Implant",
+      "unerupted": "Unerupted",
+      "fixedProsthesis": "Fixed Prosthesis",
+      "removableProsthesis": "Removable Prosthesis",
+      "files": "Files",
+      "uploadFile": "Upload File",
+      "noFiles": "No files uploaded for this patient.",
+      "deleteFileConfirm": "Are you sure you want to delete this file?",
+      "uploading": "Uploading...",
+      "connectGoogleDrive": "Connect Google Drive to upload files"
+    },
+    "Settings": {
+      "title": "Settings",
+      "subtitle": "Manage your account settings and integrations.",
+      "calComTitle": "Cal.com Integration",
+      "timezone": "Timezone",
+      "publicProfile": "Public Profile",
+      "publicIdLabel": "User ID (URL)",
+      "publicIdPlaceholder": "e.g. dr-pablo-garcia",
+      "save": "Save",
+      "saving": "Saving...",
+      "saved": "Saved",
+      "error": "Error saving",
+      "idTaken": "This ID is already taken",
+      "invalidFormat": "Invalid format (only lowercase letters, numbers, and hyphens)"
     },
     "calendarExternal": "Calendar External",
-    "patients": "Patients"
+    "patients": "Patients",
+    "settings": "Settings"
   },
   "CalCom": {
     "title": "Cal.com Integration",

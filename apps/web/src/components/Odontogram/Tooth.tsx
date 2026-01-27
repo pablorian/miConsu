@@ -4,7 +4,7 @@ interface ToothProps {
   id: number;
   data: {
     status: string;
-    surfaces: {
+    surfaces?: {
       top?: string;
       bottom?: string;
       left?: string;
@@ -44,6 +44,10 @@ const Tooth: React.FC<ToothProps> = ({ id, data, onSurfaceClick, onToothClick })
       case 'filling': text = 'O'; break;
       case 'crown': text = 'Co'; break;
       case 'endodontics': text = 'E'; break;
+      case 'implant': text = 'I'; break;
+      case 'unerupted': text = 'NE'; break;
+      case 'fixedProsthesis': text = 'PF'; break;
+      case 'removableProsthesis': text = 'PR'; break;
       default: text = ''; // Healthy or unknown
     }
 
@@ -54,7 +58,7 @@ const Tooth: React.FC<ToothProps> = ({ id, data, onSurfaceClick, onToothClick })
 
   const renderSurface = (points: string, surfaceKey: string, textX: number, textY: number) => {
     // @ts-ignore
-    const value = data.surfaces[surfaceKey];
+    const value = data.surfaces?.[surfaceKey];
     const { fill, text, textColor } = getVisuals(value);
 
     return (

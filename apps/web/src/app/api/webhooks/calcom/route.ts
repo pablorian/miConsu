@@ -26,17 +26,26 @@ export async function POST(req: NextRequest) {
 
     // 1. Find the User (Professional)
     await connectToDatabase();
-    // Check both email and possibly calComSettings.username if email doesn't match
-    const organizerEmail = organizer?.email;
-    if (!organizerEmail) {
-      return NextResponse.json({ error: 'No organizer email' }, { status: 400 });
+
+    // Check for userId query param
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+
+    let user;
+
+    if (userId) {
+      user = await User.findById(userId);
     }
 
-    let user = await User.findOne({ email: organizerEmail });
+    // Fallback or verify with email
+    const organizerEmail = organizer?.email;
+
+    if (!user && organizerEmail) {
+      user = await User.findOne({ email: organizerEmail });
+    }
+
     if (!user) {
-      // Fallback: try to find by Cal.com username if available?
-      // For now, rely on email matching WorkOS/Database email.
-      console.warn(`User not found for email: ${organizerEmail}`);
+      console.warn(`User not found. UserId param: ${userId}, Email: ${organizerEmail}`);
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 

@@ -7,6 +7,7 @@ import DentalRecordList from './DentalRecord/DentalRecordList';
 import DentalRecordForm from './DentalRecord/DentalRecordForm';
 import ServiceRecordList from './ServiceRecord/ServiceRecordList';
 import ServiceRecordForm from './ServiceRecord/ServiceRecordForm';
+import FileList from './Files/FileList';
 
 interface Patient {
   _id?: string;
@@ -68,7 +69,7 @@ export default function PatientForm({ initialData }: PatientFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'contact' | 'personal' | 'medical' | 'pathologies' | 'odontogram' | 'registry'>('contact');
+  const [activeTab, setActiveTab] = useState<'contact' | 'personal' | 'medical' | 'pathologies' | 'odontogram' | 'registry' | 'files'>('contact');
   const [editingRecord, setEditingRecord] = useState<any | 'new' | undefined>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [editingServiceRecord, setEditingServiceRecord] = useState<any | 'new' | undefined>(undefined);
@@ -160,8 +161,39 @@ export default function PatientForm({ initialData }: PatientFormProps) {
         throw new Error(data.error || 'Something went wrong');
       }
 
-      router.push('/dashboard/patients');
-      router.refresh();
+      // router.push('/dashboard/patients');
+      // router.refresh();
+
+      // If it's a new patient, maybe we should redirect to the edit page of that patient?
+      // But the user asked to STOP redirecting.
+      // If creating new: we probably should redirect to the edit page OR stay there?
+      // If we stay there on "new", we need to update the URL to include ID or reset form?
+      // Typically:
+      // Edit mode -> Stay.
+      // New mode -> Redirect to Edit mode (so you can add files etc) OR List.
+
+      // Given the request "every time I save something... stop redirecting", I assume mostly Edit mode.
+      // I will remove the redirect. 
+
+      if (!initialData?._id && data._id) {
+        // If created new, redirect to edit page to allow adding other things? 
+        // Or just let them stay? If I stay, I need to update the UI state to "Edit Mode".
+        // For now, I'll just remove the List redirect. 
+        // If I simply remove it:
+        // On Edit: Perfect, stays on page.
+        // On Create: It stays on "New Patient" page but data is saved. 
+
+        // Let's just comment it out as requested.
+
+        // Actually, if we are in "Create" mode and we save, we usually want to go to "Edit" mode of that new patient
+        // so we can add files/odontogram/etc. 
+        // But the user request is specific about "redirecting to patients page".
+
+        router.replace(`/dashboard/patients/${data._id}`); // Redirect to edit this patient instead of list
+        router.refresh();
+      } else {
+        router.refresh(); // Just refresh data
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -176,6 +208,7 @@ export default function PatientForm({ initialData }: PatientFormProps) {
     { id: 'pathologies', label: t('pathologies') },
     { id: 'odontogram', label: t('clinicalRecords') },
     { id: 'registry', label: t('registry') },
+    { id: 'files', label: t('files') },
   ];
 
   return (
@@ -433,6 +466,11 @@ export default function PatientForm({ initialData }: PatientFormProps) {
               refreshTrigger={refreshServiceTrigger}
             />
           )}
+        </div>
+
+        {/* FILES */}
+        <div className={activeTab === 'files' ? 'block' : 'hidden'}>
+          <FileList patientId={initialData?._id} />
         </div>
 
         <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
