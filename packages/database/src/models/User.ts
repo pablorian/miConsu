@@ -6,8 +6,26 @@ export interface IUser extends Document {
   firstName?: string;
   lastName?: string;
   profilePictureUrl?: string;
+  publicId?: string; // Unique slug for public profile/booking
   createdAt: Date;
   updatedAt: Date;
+  googleCalendarAccessToken?: string;
+  googleCalendarRefreshToken?: string;
+  googleCalendarTokenExpiry?: Date;
+  timezone?: string;
+  calendarPreferences?: {
+    view?: string;
+    calendars?: {
+      calendarId: string;
+      visible: boolean;
+      publicSlug?: string; // Slug for this specific calendar
+      isPublic?: boolean;  // Whether it accepts bookings
+    }[];
+  };
+  calComSettings?: {
+    username?: string;
+    connected: boolean;
+  };
 }
 
 const UserSchema: Schema = new Schema({
@@ -16,8 +34,27 @@ const UserSchema: Schema = new Schema({
   firstName: { type: String },
   lastName: { type: String },
   profilePictureUrl: { type: String },
+  publicId: { type: String, unique: true, sparse: true, trim: true }, // Sparse allows multiple nulls
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+  googleCalendarAccessToken: { type: String },
+  googleCalendarRefreshToken: { type: String },
+  googleCalendarTokenExpiry: { type: Date },
+  timezone: { type: String, default: 'America/Argentina/Buenos_Aires' },
+  calendarPreferences: {
+    view: { type: String, default: 'week' },
+    calendars: [{
+      _id: false,
+      calendarId: { type: String, required: true },
+      visible: { type: Boolean, default: true },
+      publicSlug: { type: String, trim: true },
+      isPublic: { type: Boolean, default: false }
+    }]
+  },
+  calComSettings: {
+    username: { type: String, trim: true },
+    connected: { type: Boolean, default: false }
+  }
 }, { timestamps: true });
 
 // Ensure we use the 'users' collection as requested

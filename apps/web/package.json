@@ -10,15 +10,20 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@calcom/embed-react": "^1.5.3",
     "@repo/database": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
+    "@types/react-big-calendar": "^1.16.3",
     "@workos-inc/node": "latest",
+    "date-fns": "^4.1.0",
+    "googleapis": "^169.0.0",
     "jose": "latest",
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.1",
     "next": "latest",
     "next-intl": "^4.6.0",
     "react": "latest",
+    "react-big-calendar": "^1.19.4",
     "react-dom": "latest"
   },
   "devDependencies": {

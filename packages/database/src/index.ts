@@ -45,5 +45,9 @@ async function connectToDatabase() {
 
 
 export * from './models/User';
+export * from './models/Appointment';
+export * from './models/Patient';
+export * from './models/DentalRecord';
+export * from './models/ServiceRecord';
 
 export default connectToDatabase;
