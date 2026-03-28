@@ -1,23 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useRouter, useSearchParams } from 'next/navigation';
 import DentalRecordList from './DentalRecord/DentalRecordList';
 import DentalRecordForm from './DentalRecord/DentalRecordForm';
 import ServiceRecordList from './ServiceRecord/ServiceRecordList';
 import ServiceRecordForm from './ServiceRecord/ServiceRecordForm';
 import FileList from './Files/FileList';
+import AntecedentesForm from './Patient/AntecedentesForm';
+import TreatmentPlanList from './TreatmentPlan/TreatmentPlanList';
+import TreatmentPlanForm from './TreatmentPlan/TreatmentPlanForm';
+import PatientAppointmentList from './Patient/PatientAppointmentList';
+import Periodontogram from './Periodontogram/Periodontogram';
+import PatientWallet from './Patient/PatientWallet';
 
 interface Patient {
   _id?: string;
   name: string;
+  lastName?: string;
   email?: string;
   phone?: string;
   personalInfo?: {
     dni?: string;
+    sex?: string;
     age?: number;
-    birthDate?: string; // string for input date type
+    birthDate?: string;
     maritalStatus?: string;
     nationality?: string;
     address?: string;
@@ -25,64 +32,67 @@ interface Patient {
     profession?: string;
   };
   medicalCoverage?: {
+    name?: string;
     plan?: string;
     affiliateNumber?: string;
     holderName?: string;
     holderWorkplace?: string;
   };
-  pathologies?: {
-    diabetes?: boolean;
-    hiv?: boolean;
-    allergies?: boolean;
-    rheumaticFever?: boolean;
-    heartProblems?: boolean;
-    pacemaker?: boolean;
-    hypertension?: boolean;
-    kidneyProblems?: boolean;
-    tuberculosis?: boolean;
-    chagas?: boolean;
-    hepatitis?: boolean;
-    venerealDiseases?: boolean;
-    gastritis?: boolean;
-    eatingDisorders?: boolean;
-    bloodDisorders?: boolean;
-    bloodTransfusion?: boolean;
-    chemotherapy?: boolean;
-    radiotherapy?: boolean;
-    thyroid?: boolean;
-    other?: boolean;
-    smokes?: boolean;
-    drinksAlcohol?: boolean;
-    bruxism?: boolean;
-    observations?: string;
-  };
+  pathologies?: Record<string, any>;
   odontogram?: any[];
+  periodontogram?: Record<string, any>;
 }
 
 interface PatientFormProps {
-  initialData?: any; // strict typing difficult with loose recursive types, matching standard Patient interface roughly
+  initialData?: any;
 }
 
+type TabId = 'info' | 'antecedentes' | 'evolucion' | 'odontogram' | 'tratamientos' | 'periodontogram' | 'files' | 'turnos' | 'billetera';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'info', label: 'Información' },
+  { id: 'antecedentes', label: 'Antecedentes' },
+  { id: 'evolucion', label: 'Evolución' },
+  { id: 'odontogram', label: 'Odontograma' },
+  { id: 'tratamientos', label: 'Tratamientos' },
+  { id: 'periodontogram', label: 'Periodontograma' },
+  { id: 'files', label: 'Archivos' },
+  { id: 'turnos', label: 'Turnos' },
+  { id: 'billetera', label: 'Billetera' },
+];
+
 export default function PatientForm({ initialData }: PatientFormProps) {
-  const t = useTranslations('Dashboard.Patients');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    const tabParam = searchParams.get('tab');
+    const validTabs: TabId[] = ['info', 'antecedentes', 'evolucion', 'odontogram', 'tratamientos', 'periodontogram', 'files', 'turnos', 'billetera'];
+    return (validTabs.includes(tabParam as TabId) ? tabParam : 'info') as TabId;
+  });
 
-  const [activeTab, setActiveTab] = useState<'contact' | 'personal' | 'medical' | 'pathologies' | 'odontogram' | 'registry' | 'files'>('contact');
-  const [editingRecord, setEditingRecord] = useState<any | 'new' | undefined>(undefined);
+  // Sub-form states
+  const [editingRecord, setEditingRecord] = useState<any>(undefined);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [editingServiceRecord, setEditingServiceRecord] = useState<any | 'new' | undefined>(undefined);
+  const [editingServiceRecord, setEditingServiceRecord] = useState<any>(undefined);
   const [refreshServiceTrigger, setRefreshServiceTrigger] = useState(0);
+  const [editingTreatmentPlan, setEditingTreatmentPlan] = useState<any>(undefined);
+  const [refreshTreatmentTrigger, setRefreshTreatmentTrigger] = useState(0);
 
   const [formData, setFormData] = useState<Patient>({
     name: initialData?.name || '',
+    lastName: initialData?.lastName || '',
     email: initialData?.email || '',
     phone: initialData?.phone || '',
     personalInfo: {
       dni: initialData?.personalInfo?.dni || '',
+      sex: initialData?.personalInfo?.sex || '',
       age: initialData?.personalInfo?.age || '',
-      birthDate: initialData?.personalInfo?.birthDate ? new Date(initialData.personalInfo.birthDate).toISOString().split('T')[0] : '',
+      birthDate: initialData?.personalInfo?.birthDate
+        ? new Date(initialData.personalInfo.birthDate).toISOString().split('T')[0]
+        : '',
       maritalStatus: initialData?.personalInfo?.maritalStatus || '',
       nationality: initialData?.personalInfo?.nationality || '',
       address: initialData?.personalInfo?.address || '',
@@ -90,63 +100,60 @@ export default function PatientForm({ initialData }: PatientFormProps) {
       profession: initialData?.personalInfo?.profession || '',
     },
     medicalCoverage: {
+      name: initialData?.medicalCoverage?.name || '',
       plan: initialData?.medicalCoverage?.plan || '',
       affiliateNumber: initialData?.medicalCoverage?.affiliateNumber || '',
       holderName: initialData?.medicalCoverage?.holderName || '',
       holderWorkplace: initialData?.medicalCoverage?.holderWorkplace || '',
     },
-    pathologies: {
-      diabetes: initialData?.pathologies?.diabetes || false,
-      hiv: initialData?.pathologies?.hiv || false,
-      allergies: initialData?.pathologies?.allergies || false,
-      rheumaticFever: initialData?.pathologies?.rheumaticFever || false,
-      heartProblems: initialData?.pathologies?.heartProblems || false,
-      pacemaker: initialData?.pathologies?.pacemaker || false,
-      hypertension: initialData?.pathologies?.hypertension || false,
-      kidneyProblems: initialData?.pathologies?.kidneyProblems || false,
-      tuberculosis: initialData?.pathologies?.tuberculosis || false,
-      chagas: initialData?.pathologies?.chagas || false,
-      hepatitis: initialData?.pathologies?.hepatitis || false,
-      venerealDiseases: initialData?.pathologies?.venerealDiseases || false,
-      gastritis: initialData?.pathologies?.gastritis || false,
-      eatingDisorders: initialData?.pathologies?.eatingDisorders || false,
-      bloodDisorders: initialData?.pathologies?.bloodDisorders || false,
-      bloodTransfusion: initialData?.pathologies?.bloodTransfusion || false,
-      chemotherapy: initialData?.pathologies?.chemotherapy || false,
-      radiotherapy: initialData?.pathologies?.radiotherapy || false,
-      thyroid: initialData?.pathologies?.thyroid || false,
-      other: initialData?.pathologies?.other || false,
-      smokes: initialData?.pathologies?.smokes || false,
-      drinksAlcohol: initialData?.pathologies?.drinksAlcohol || false,
-      bruxism: initialData?.pathologies?.bruxism || false,
-      observations: initialData?.pathologies?.observations || '',
-    },
-    odontogram: initialData?.odontogram || []
+    pathologies: initialData?.pathologies || {},
+    odontogram: initialData?.odontogram || [],
+    periodontogram: initialData?.periodontogram || {},
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (field: keyof Patient, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleNestedChange = (section: keyof Patient, field: string, value: any) => {
+  const handleNestedChange = (section: 'personalInfo' | 'medicalCoverage', field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      [section]: {
-        ...prev[section] as any,
-        [field]: value
-      }
+      [section]: { ...(prev[section] as any), [field]: value },
     }));
+  };
+
+  const handlePathologyChange = (field: string, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      pathologies: { ...(prev.pathologies || {}), [field]: value },
+    }));
+  };
+
+  const handleCategoryCommentChange = (category: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      pathologies: {
+        ...(prev.pathologies || {}),
+        categoryComments: {
+          ...((prev.pathologies?.categoryComments as Record<string, string>) || {}),
+          [category]: value,
+        },
+      },
+    }));
+  };
+
+  const handlePeriodontogramChange = (data: Record<string, any>) => {
+    setFormData(prev => ({ ...prev, periodontogram: data }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSaved(false);
 
     try {
-      const url = initialData?._id
-        ? `/api/patients/${initialData._id}`
-        : '/api/patients';
+      const url = initialData?._id ? `/api/patients/${initialData._id}` : '/api/patients';
       const method = initialData?._id ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -156,43 +163,15 @@ export default function PatientForm({ initialData }: PatientFormProps) {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Something went wrong');
-      }
-
-      // router.push('/dashboard/patients');
-      // router.refresh();
-
-      // If it's a new patient, maybe we should redirect to the edit page of that patient?
-      // But the user asked to STOP redirecting.
-      // If creating new: we probably should redirect to the edit page OR stay there?
-      // If we stay there on "new", we need to update the URL to include ID or reset form?
-      // Typically:
-      // Edit mode -> Stay.
-      // New mode -> Redirect to Edit mode (so you can add files etc) OR List.
-
-      // Given the request "every time I save something... stop redirecting", I assume mostly Edit mode.
-      // I will remove the redirect. 
+      if (!res.ok) throw new Error(data.error || 'Error al guardar');
 
       if (!initialData?._id && data._id) {
-        // If created new, redirect to edit page to allow adding other things? 
-        // Or just let them stay? If I stay, I need to update the UI state to "Edit Mode".
-        // For now, I'll just remove the List redirect. 
-        // If I simply remove it:
-        // On Edit: Perfect, stays on page.
-        // On Create: It stays on "New Patient" page but data is saved. 
-
-        // Let's just comment it out as requested.
-
-        // Actually, if we are in "Create" mode and we save, we usually want to go to "Edit" mode of that new patient
-        // so we can add files/odontogram/etc. 
-        // But the user request is specific about "redirecting to patients page".
-
-        router.replace(`/dashboard/patients/${data._id}`); // Redirect to edit this patient instead of list
+        router.replace(`/dashboard/patients/${data._id}`);
         router.refresh();
       } else {
-        router.refresh(); // Just refresh data
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => setSaved(false), 3000);
       }
     } catch (err: any) {
       setError(err.message);
@@ -201,295 +180,284 @@ export default function PatientForm({ initialData }: PatientFormProps) {
     }
   };
 
-  const tabs = [
-    { id: 'contact', label: t('title') },
-    { id: 'personal', label: t('personalInfo') },
-    { id: 'medical', label: t('medicalCoverage') },
-    { id: 'pathologies', label: t('pathologies') },
-    { id: 'odontogram', label: t('clinicalRecords') },
-    { id: 'registry', label: t('registry') },
-    { id: 'files', label: t('files') },
-  ];
+  const inputClass = "w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm";
+  const labelClass = "block text-sm font-medium text-muted-foreground mb-1";
 
   return (
-    <div className="max-w-4xl bg-white dark:bg-zinc-900 p-6 rounded-lg border border-gray-200 dark:border-gray-800">
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6 overflow-x-auto">
-        {tabs.map((tab) => (
+    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      {/* Tab Navigation */}
+      <div className="flex border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+        {TABS.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${activeTab === tab.id
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+              activeTab === tab.id
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+            }`}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="p-6">
         {error && (
-          <div className="p-3 text-sm text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
+          <div className="mb-4 p-3 text-sm text-red-600 bg-red-100 dark:bg-red-900/20 dark:text-red-400 rounded-lg">
             {error}
           </div>
         )}
-
-        {/* CONTACT INFO */}
-        <div className={activeTab === 'contact' ? 'block' : 'hidden'}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('name')}</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('email')}</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('phone')}</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+        {saved && (
+          <div className="mb-4 p-3 text-sm text-green-700 bg-green-100 dark:bg-green-900/20 dark:text-green-400 rounded-lg">
+            ✓ Cambios guardados correctamente
           </div>
-        </div>
+        )}
 
-        {/* PERSONAL INFO */}
-        <div className={activeTab === 'personal' ? 'block' : 'hidden'}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('dni')}</label>
-              <input
-                type="text"
-                value={formData.personalInfo?.dni || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'dni', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('age')}</label>
-              <input
-                type="number"
-                value={formData.personalInfo?.age || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'age', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('birthDate')}</label>
-              <input
-                type="date"
-                value={formData.personalInfo?.birthDate || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'birthDate', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('maritalStatus')}</label>
-              <input
-                type="text"
-                value={formData.personalInfo?.maritalStatus || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'maritalStatus', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('nationality')}</label>
-              <input
-                type="text"
-                value={formData.personalInfo?.nationality || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'nationality', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('profession')}</label>
-              <input
-                type="text"
-                value={formData.personalInfo?.profession || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'profession', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('address')}</label>
-              <input
-                type="text"
-                value={formData.personalInfo?.address || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'address', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('neighborhood')}</label>
-              <input
-                type="text"
-                value={formData.personalInfo?.neighborhood || ''}
-                onChange={(e) => handleNestedChange('personalInfo', 'neighborhood', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
-        </div>
+        <form onSubmit={handleSubmit}>
 
-        {/* MEDICAL COVERAGE */}
-        <div className={activeTab === 'medical' ? 'block' : 'hidden'}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('plan')}</label>
-              <input
-                type="text"
-                value={formData.medicalCoverage?.plan || ''}
-                onChange={(e) => handleNestedChange('medicalCoverage', 'plan', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('affiliateNumber')}</label>
-              <input
-                type="text"
-                value={formData.medicalCoverage?.affiliateNumber || ''}
-                onChange={(e) => handleNestedChange('medicalCoverage', 'affiliateNumber', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('holderName')}</label>
-              <input
-                type="text"
-                value={formData.medicalCoverage?.holderName || ''}
-                onChange={(e) => handleNestedChange('medicalCoverage', 'holderName', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">{t('holderWorkplace')}</label>
-              <input
-                type="text"
-                value={formData.medicalCoverage?.holderWorkplace || ''}
-                onChange={(e) => handleNestedChange('medicalCoverage', 'holderWorkplace', e.target.value)}
-                className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
-        </div>
+          {/* ==================== INFORMACIÓN ==================== */}
+          {activeTab === 'info' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Datos Personales */}
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Datos Personales</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className={labelClass}>Nombre <span className="text-red-500">*</span></label>
+                      <input type="text" value={formData.name} onChange={(e) => handleChange('name', e.target.value)} required className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Apellido</label>
+                      <input type="text" value={formData.lastName || ''} onChange={(e) => handleChange('lastName', e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>DNI / Documento</label>
+                      <input type="text" value={formData.personalInfo?.dni || ''} onChange={(e) => handleNestedChange('personalInfo', 'dni', e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fecha de Nacimiento</label>
+                      <input type="date" value={formData.personalInfo?.birthDate || ''} onChange={(e) => handleNestedChange('personalInfo', 'birthDate', e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Sexo</label>
+                      <select value={formData.personalInfo?.sex || ''} onChange={(e) => handleNestedChange('personalInfo', 'sex', e.target.value)} className={inputClass + ' bg-white dark:bg-zinc-900'}>
+                        <option value="">Seleccionar</option>
+                        <option value="masculino">Masculino</option>
+                        <option value="femenino">Femenino</option>
+                        <option value="otro">Otro</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-        {/* PATHOLOGIES */}
-        <div className={activeTab === 'pathologies' ? 'block' : 'hidden'}>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-6">
-            {Object.keys(formData.pathologies || {}).map((key) => {
-              if (key === 'observations') return null;
-              return (
-                <label key={key} className="flex items-center gap-2 cursor-pointer p-2 border border-gray-100 dark:border-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800">
-                  <input
-                    type="checkbox"
-                    checked={(formData.pathologies as any)[key] || false}
-                    onChange={(e) => handleNestedChange('pathologies', key, e.target.checked)}
-                    className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+                {/* Contacto */}
+                <div>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Contacto</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className={labelClass}>Teléfono</label>
+                      <input type="tel" value={formData.phone || ''} onChange={(e) => handleChange('phone', e.target.value)} className={inputClass} placeholder="Ej: 3518119413" />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Email</label>
+                      <input type="email" value={formData.email || ''} onChange={(e) => handleChange('email', e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Dirección</label>
+                      <input type="text" value={formData.personalInfo?.address || ''} onChange={(e) => handleNestedChange('personalInfo', 'address', e.target.value)} className={inputClass} />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Barrio</label>
+                      <input type="text" value={formData.personalInfo?.neighborhood || ''} onChange={(e) => handleNestedChange('personalInfo', 'neighborhood', e.target.value)} className={inputClass} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Obra Social */}
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">Obra Social</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className={labelClass}>Nombre</label>
+                    <input type="text" value={formData.medicalCoverage?.name || ''} onChange={(e) => handleNestedChange('medicalCoverage', 'name', e.target.value)} className={inputClass} placeholder="Ej: OSDE, PAMI..." />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Plan</label>
+                    <input type="text" value={formData.medicalCoverage?.plan || ''} onChange={(e) => handleNestedChange('medicalCoverage', 'plan', e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Número de Afiliado</label>
+                    <input type="text" value={formData.medicalCoverage?.affiliateNumber || ''} onChange={(e) => handleNestedChange('medicalCoverage', 'affiliateNumber', e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Titular</label>
+                    <input type="text" value={formData.medicalCoverage?.holderName || ''} onChange={(e) => handleNestedChange('medicalCoverage', 'holderName', e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Lugar de Trabajo del Titular</label>
+                    <input type="text" value={formData.medicalCoverage?.holderWorkplace || ''} onChange={(e) => handleNestedChange('medicalCoverage', 'holderWorkplace', e.target.value)} className={inputClass} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <button type="button" onClick={() => router.back()} className="px-4 py-2 text-sm font-medium text-muted-foreground bg-gray-100 dark:bg-zinc-800 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition disabled:opacity-50">
+                  {loading ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== ANTECEDENTES ==================== */}
+          {activeTab === 'antecedentes' && (
+            <div>
+              <AntecedentesForm
+                data={formData.pathologies || {}}
+                onChange={handlePathologyChange}
+                onCommentChange={handleCategoryCommentChange}
+              />
+              <div className="flex gap-3 pt-4 mt-4 border-t border-gray-100 dark:border-gray-800">
+                <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition disabled:opacity-50">
+                  {loading ? 'Guardando...' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== EVOLUCIÓN ==================== */}
+          {activeTab === 'evolucion' && (
+            <div>
+              {editingServiceRecord !== undefined ? (
+                <ServiceRecordForm
+                  patientId={initialData?._id}
+                  initialData={editingServiceRecord === 'new' ? undefined : editingServiceRecord}
+                  onClose={() => setEditingServiceRecord(undefined)}
+                  onSave={() => {
+                    setEditingServiceRecord(undefined);
+                    setRefreshServiceTrigger(prev => prev + 1);
+                  }}
+                />
+              ) : (
+                <ServiceRecordList
+                  patientId={initialData?._id}
+                  onEdit={(record) => setEditingServiceRecord(record)}
+                  onNew={() => setEditingServiceRecord('new')}
+                  refreshTrigger={refreshServiceTrigger}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ==================== ODONTOGRAMA ==================== */}
+          {activeTab === 'odontogram' && (
+            <div>
+              {editingRecord !== undefined ? (
+                <DentalRecordForm
+                  patientId={initialData?._id}
+                  initialData={editingRecord === 'new' ? undefined : editingRecord}
+                  onClose={() => setEditingRecord(undefined)}
+                  onSave={() => {
+                    setEditingRecord(undefined);
+                    setRefreshTrigger(prev => prev + 1);
+                  }}
+                />
+              ) : (
+                <DentalRecordList
+                  patientId={initialData?._id}
+                  onEdit={(record) => setEditingRecord(record)}
+                  onNew={() => setEditingRecord('new')}
+                  refreshTrigger={refreshTrigger}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ==================== TRATAMIENTOS ==================== */}
+          {activeTab === 'tratamientos' && (
+            <div>
+              {initialData?._id ? (
+                editingTreatmentPlan !== undefined ? (
+                  <TreatmentPlanForm
+                    patientId={initialData._id}
+                    initialData={editingTreatmentPlan === 'new' ? undefined : editingTreatmentPlan}
+                    onClose={() => setEditingTreatmentPlan(undefined)}
+                    onSave={() => {
+                      setEditingTreatmentPlan(undefined);
+                      setRefreshTreatmentTrigger(prev => prev + 1);
+                    }}
                   />
-                  <span className="text-sm font-medium text-foreground">{t(key)}</span>
-                </label>
-              );
-            })}
-          </div>
+                ) : (
+                  <TreatmentPlanList
+                    patientId={initialData._id}
+                    onEdit={(plan) => setEditingTreatmentPlan(plan)}
+                    onNew={() => setEditingTreatmentPlan('new')}
+                    refreshTrigger={refreshTreatmentTrigger}
+                  />
+                )
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  Guardá el paciente primero para agregar planes de tratamiento.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ==================== PERIODONTOGRAMA ==================== */}
+          {activeTab === 'periodontogram' && (
+            <div>
+              <Periodontogram
+                initialData={formData.periodontogram}
+                onChange={handlePeriodontogramChange}
+              />
+              <div className="flex gap-3 pt-4 mt-4 border-t border-gray-100 dark:border-gray-800">
+                <button type="submit" disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition disabled:opacity-50">
+                  {loading ? 'Guardando...' : 'Guardar Periodontograma'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ==================== ARCHIVOS ==================== */}
+          {activeTab === 'files' && (
+            <FileList patientId={initialData?._id} />
+          )}
+
+          {/* ==================== TURNOS ==================== */}
+          {activeTab === 'turnos' && (
+            <div>
+              {initialData?._id ? (
+                <PatientAppointmentList patientId={initialData._id} />
+              ) : (
+                <div className="p-8 text-center text-muted-foreground">
+                  Guardá el paciente primero para ver sus turnos.
+                </div>
+              )}
+            </div>
+          )}
+
+        </form>
+
+        {/* ==================== BILLETERA ==================== */}
+        {/* Fuera del <form> para evitar formularios anidados (HTML no permite forms dentro de forms) */}
+        {activeTab === 'billetera' && (
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">{t('observations')}</label>
-            <textarea
-              value={formData.pathologies?.observations || ''}
-              onChange={(e) => handleNestedChange('pathologies', 'observations', e.target.value)}
-              rows={4}
-              className="w-full p-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+            {initialData?._id ? (
+              <PatientWallet patientId={initialData._id} />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                Guardá el paciente primero para ver su billetera.
+              </div>
+            )}
           </div>
-        </div>
-
-
-
-        {/* ODONTOGRAM */}
-        {/* RECORDS (FICHAS) */}
-        <div className={activeTab === 'odontogram' ? 'block' : 'hidden'}>
-          {editingRecord !== undefined ? (
-            <DentalRecordForm
-              patientId={initialData?._id}
-              initialData={editingRecord === 'new' ? undefined : editingRecord}
-              onClose={() => setEditingRecord(undefined)}
-              onSave={() => {
-                setEditingRecord(undefined);
-                setRefreshTrigger(prev => prev + 1);
-              }}
-            />
-          ) : (
-            <DentalRecordList
-              patientId={initialData?._id}
-              onEdit={(record) => setEditingRecord(record)}
-              onNew={() => setEditingRecord('new')}
-              refreshTrigger={refreshTrigger}
-            />
-          )}
-        </div>
-
-        {/* SERVICE REGISTRY */}
-        <div className={activeTab === 'registry' ? 'block' : 'hidden'}>
-          {editingServiceRecord !== undefined ? (
-            <ServiceRecordForm
-              patientId={initialData?._id}
-              initialData={editingServiceRecord === 'new' ? undefined : editingServiceRecord}
-              onClose={() => setEditingServiceRecord(undefined)}
-              onSave={() => {
-                setEditingServiceRecord(undefined);
-                setRefreshServiceTrigger(prev => prev + 1);
-              }}
-            />
-          ) : (
-            <ServiceRecordList
-              patientId={initialData?._id}
-              onEdit={(record) => setEditingServiceRecord(record)}
-              onNew={() => setEditingServiceRecord('new')}
-              refreshTrigger={refreshServiceTrigger}
-            />
-          )}
-        </div>
-
-        {/* FILES */}
-        <div className={activeTab === 'files' ? 'block' : 'hidden'}>
-          <FileList patientId={initialData?._id} />
-        </div>
-
-        <div className="flex gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-4 py-2 text-sm font-medium text-muted-foreground bg-gray-100 dark:bg-zinc-800 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-          >
-            {t('cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {loading ? t('save') + '...' : t('save')}
-          </button>
-        </div>
-      </form >
-    </div >
+        )}
+      </div>
+    </div>
   );
 }

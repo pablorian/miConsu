@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import connectToDatabase, { User } from '@repo/database';
 import { verifySession } from '@/lib/session';
+import { registerGoogleCalendarWebhook } from '@/lib/google-calendar-sync';
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
@@ -39,14 +40,20 @@ export async function GET(request: NextRequest) {
     await connectToDatabase();
 
     // Update user using WorkOS ID
-    await User.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
       { workosId: session.id },
       {
         googleCalendarAccessToken: tokens.access_token,
         googleCalendarRefreshToken: tokens.refresh_token,
         googleCalendarTokenExpiry: new Date(tokens.expiry_date || Date.now() + 3500 * 1000),
-      }
+      },
+      { new: true }
     );
+
+    if (user) {
+      // Register webhook to listen for events in the background
+      await registerGoogleCalendarWebhook(user);
+    }
 
     // Redirect back to calendar dashboard
     return NextResponse.redirect(new URL('/dashboard/calendar', request.url));

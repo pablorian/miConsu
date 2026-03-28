@@ -219,7 +219,6 @@
     "Settings": {
       "title": "Settings",
       "subtitle": "Manage your account settings and integrations.",
-      "calComTitle": "Cal.com Integration",
       "timezone": "Timezone",
       "publicProfile": "Public Profile",
       "publicIdLabel": "User ID (URL)",
@@ -234,16 +233,5 @@
     "calendarExternal": "Calendar External",
     "patients": "Patients",
     "settings": "Settings"
-  },
-  "CalCom": {
-    "title": "Cal.com Integration",
-    "subtitle": "Connect your Cal.com calendar to embed it in your dashboard.",
-    "settings": "Cal.com Settings",
-    "usernameLabel": "Cal.com Username",
-    "usernamePlaceholder": "e.g. pablo",
-    "connect": "Connect",
-    "disconnect": "Disconnect",
-    "changeAccount": "Change Account",
-    "viewCalendar": "View Calendar"
   }
 }

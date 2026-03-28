@@ -11,7 +11,8 @@ export interface IAppointment extends Document {
   patientEmail?: string;
   patientPhone: string;
   reason: string; // Changed to string to be more flexible with Cal.com titles
-  status: 'confirmed' | 'cancelled' | 'pending';
+  status: 'pending' | 'confirmed' | 'user confirmed' | 'user waiting' | 'done' | 'cancelled';
+  solicitudDismissed?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,9 +34,10 @@ const AppointmentSchema: Schema = new Schema({
   },
   status: {
     type: String,
-    enum: ['confirmed', 'cancelled', 'pending'],
-    default: 'confirmed' // Cal.com events are usually confirmed
-  }
+    enum: ['pending', 'confirmed', 'user confirmed', 'user waiting', 'done', 'cancelled'],
+    default: 'pending'
+  },
+  solicitudDismissed: { type: Boolean, default: false },
 }, { timestamps: true });
 
 // Index for efficient querying by user/date

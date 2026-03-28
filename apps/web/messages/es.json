@@ -214,12 +214,33 @@
       "noFiles": "No hay archivos subidos para este paciente.",
       "deleteFileConfirm": "¿Está seguro que desea eliminar este archivo?",
       "uploading": "Subiendo...",
-      "connectGoogleDrive": "Conectá Google Drive para subir archivos"
+      "connectGoogleDrive": "Conectá Google Drive para subir archivos",
+      "lastName": "Apellido",
+      "sex": "Sexo",
+      "sexMale": "Masculino",
+      "sexFemale": "Femenino",
+      "sexOther": "Otro",
+      "medicalCoverageName": "Nombre Obra Social",
+      "antecedentes": "Antecedentes",
+      "evolucion": "Evolución",
+      "tratamientos": "Tratamientos",
+      "periodontogram": "Periodontograma",
+      "turnos": "Turnos",
+      "treatmentPlans": "Planes de Tratamiento",
+      "newTreatmentPlan": "Nuevo Plan",
+      "noTreatmentPlans": "No hay planes de tratamiento registrados.",
+      "treatmentPlanName": "Nombre del Plan",
+      "treatmentPlanProfessional": "Profesional",
+      "treatmentPlanStatus": "Estado",
+      "treatmentPlanNotes": "Notas",
+      "statusInProgress": "En Progreso",
+      "statusFinished": "Finalizado",
+      "statusCancelled": "Cancelado",
+      "noAppointments": "No hay turnos registrados para este paciente."
     },
     "Settings": {
       "title": "Configuración",
       "subtitle": "Gestioná la configuración de tu cuenta e integraciones.",
-      "calComTitle": "Integración Cal.com",
       "timezone": "Zona Horaria",
       "publicProfile": "Perfil Público",
       "publicIdLabel": "ID de Usuario (URL)",
@@ -234,16 +255,5 @@
     "calendarExternal": "Calendario Externo",
     "patients": "Pacientes",
     "settings": "Configuración"
-  },
-  "CalCom": {
-    "title": "Integración con Cal.com",
-    "subtitle": "Conecta tu calendario de Cal.com para incrustarlo en tu panel.",
-    "settings": "Configuración de Cal.com",
-    "usernameLabel": "Nombre de usuario de Cal.com",
-    "usernamePlaceholder": "ej: pablo",
-    "connect": "Conectar",
-    "disconnect": "Desconectar",
-    "changeAccount": "Cambiar Cuenta",
-    "viewCalendar": "Ver Calendario"
   }
 }

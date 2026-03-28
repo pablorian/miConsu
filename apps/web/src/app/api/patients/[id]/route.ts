@@ -52,9 +52,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, email, phone, personalInfo, medicalCoverage, pathologies, odontogram } = await req.json();
-
-    console.log('API PUT /patients/[id] body:', { id, name, odontogramLength: odontogram?.length, odontogramSample: odontogram?.[0] });
+    const { name, lastName, email, phone, personalInfo, medicalCoverage, pathologies, odontogram, periodontogram } = await req.json();
 
     await connectToDatabase();
     const user = await User.findOne({ workosId: (session as any).id });
@@ -66,12 +64,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       { _id: id, userId: user._id },
       {
         name,
+        lastName: lastName || undefined,
         email: email || undefined,
         phone: phone || undefined,
         personalInfo,
         medicalCoverage,
         pathologies,
-        odontogram
+        odontogram,
+        periodontogram,
       },
       { new: true, runValidators: true }
     );

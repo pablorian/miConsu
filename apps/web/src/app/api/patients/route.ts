@@ -48,9 +48,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, email, phone, personalInfo, medicalCoverage, pathologies, odontogram } = await req.json();
-
-    console.log('API POST /patients body:', { name, odontogramLength: odontogram?.length, odontogramSample: odontogram?.[0] });
+    const { name, lastName, email, phone, personalInfo, medicalCoverage, pathologies, odontogram, periodontogram } = await req.json();
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
@@ -62,18 +60,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check optional unique constraints manually if needed, or rely on db index errors
-    // Assuming simple creation for now.
-
     const patient = await Patient.create({
       userId: user._id,
       name,
+      lastName: lastName || undefined,
       email: email || undefined,
       phone: phone || undefined,
       personalInfo,
       medicalCoverage,
       pathologies,
-      odontogram
+      odontogram,
+      periodontogram,
     });
 
     return NextResponse.json({ patient });

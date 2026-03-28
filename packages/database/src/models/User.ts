@@ -12,6 +12,10 @@ export interface IUser extends Document {
   googleCalendarAccessToken?: string;
   googleCalendarRefreshToken?: string;
   googleCalendarTokenExpiry?: Date;
+  googleCalendarSyncToken?: string;
+  googleChannelId?: string;
+  googleChannelResourceId?: string;
+  googleChannelExpiration?: string;
   timezone?: string;
   calendarPreferences?: {
     view?: string;
@@ -21,10 +25,6 @@ export interface IUser extends Document {
       publicSlug?: string; // Slug for this specific calendar
       isPublic?: boolean;  // Whether it accepts bookings
     }[];
-  };
-  calComSettings?: {
-    username?: string;
-    connected: boolean;
   };
 }
 
@@ -40,6 +40,10 @@ const UserSchema: Schema = new Schema({
   googleCalendarAccessToken: { type: String },
   googleCalendarRefreshToken: { type: String },
   googleCalendarTokenExpiry: { type: Date },
+  googleCalendarSyncToken: { type: String },
+  googleChannelId: { type: String },
+  googleChannelResourceId: { type: String },
+  googleChannelExpiration: { type: String },
   timezone: { type: String, default: 'America/Argentina/Buenos_Aires' },
   calendarPreferences: {
     view: { type: String, default: 'week' },
@@ -51,10 +55,6 @@ const UserSchema: Schema = new Schema({
       isPublic: { type: Boolean, default: false }
     }]
   },
-  calComSettings: {
-    username: { type: String, trim: true },
-    connected: { type: Boolean, default: false }
-  }
 }, { timestamps: true });
 
 // Ensure we use the 'users' collection as requested

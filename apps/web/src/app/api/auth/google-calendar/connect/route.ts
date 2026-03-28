@@ -9,9 +9,8 @@ export async function GET(request: NextRequest) {
   );
 
   const scopes = [
-    'https://www.googleapis.com/auth/calendar.events.readonly',
-    'https://www.googleapis.com/auth/calendar.readonly',
-    'https://www.googleapis.com/auth/drive.file'
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/calendar.events',
   ];
 
   const url = oauth2Client.generateAuthUrl({

@@ -2,8 +2,10 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IServiceRecord extends Document {
   patientId: mongoose.Types.ObjectId;
+  appointmentId?: mongoose.Types.ObjectId; // optional ref to Appointment
   date: Date;
   professional: string;
+  professionalId?: mongoose.Types.ObjectId; // optional ref to Professional model
   service: string;
   price: number;
   paid: number;
@@ -13,8 +15,10 @@ export interface IServiceRecord extends Document {
 
 const ServiceRecordSchema: Schema = new Schema({
   patientId: { type: Schema.Types.ObjectId, ref: 'Patient', required: true },
+  appointmentId: { type: Schema.Types.ObjectId, ref: 'Appointment', default: null },
   date: { type: Date, required: true, default: Date.now },
   professional: { type: String, required: true },
+  professionalId: { type: Schema.Types.ObjectId, ref: 'Professional', default: null },
   service: { type: String, required: true },
   price: { type: Number, required: true, default: 0 },
   paid: { type: Number, required: true, default: 0 },
@@ -26,4 +30,6 @@ const ServiceRecordSchema: Schema = new Schema({
 
 ServiceRecordSchema.index({ patientId: 1, date: -1 });
 
-export const ServiceRecord = mongoose.models.ServiceRecord || mongoose.model<IServiceRecord>('ServiceRecord', ServiceRecordSchema);
+export const ServiceRecord = mongoose.models.ServiceRecord
+  ? (mongoose.models.ServiceRecord as mongoose.Model<IServiceRecord>)
+  : mongoose.model<IServiceRecord>('ServiceRecord', ServiceRecordSchema);

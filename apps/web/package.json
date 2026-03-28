@@ -10,7 +10,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@calcom/embed-react": "^1.5.3",
     "@repo/database": "workspace:*",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/react-big-calendar": "^1.16.3",

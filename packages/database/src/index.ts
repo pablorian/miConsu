@@ -50,5 +50,12 @@ export * from './models/Patient';
 export * from './models/DentalRecord';
 export * from './models/ServiceRecord';
 export * from './models/PatientFile';
+export * from './models/TreatmentPlan';
+export * from './models/Payment';
+export * from './models/Professional';
+export * from './models/ProfessionalLiquidation';
+export * from './models/Consultorio';
+export * from './models/ConsultorioBooking';
+export * from './models/BookingPage';
 
 export default connectToDatabase;

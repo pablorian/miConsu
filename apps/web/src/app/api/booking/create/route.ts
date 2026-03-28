@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import connectToDatabase, { User, Appointment } from '@repo/database';
 import { addMinutes, parseISO } from 'date-fns';
+import { matchPatient } from '@/lib/patient-matching';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,13 @@ export async function POST(request: NextRequest) {
     const startDateTime = new Date(startDateTimeStr); // This creates it in Server Local Time (UTC usually)
     const endDateTime = addMinutes(startDateTime, 30);
 
+    // Try to auto-match this booking to an existing patient
+    const matchedPatient = await matchPatient(user._id, {
+      email: patientEmail,
+      phone: patientPhone,
+      name: patientName,
+    });
+
     const newAppointment = await Appointment.create({
       userId,
       calendarId,
@@ -66,7 +74,8 @@ export async function POST(request: NextRequest) {
       patientEmail,
       patientPhone,
       reason,
-      status: 'pending'
+      status: 'pending',
+      ...(matchedPatient ? { patientId: matchedPatient._id } : {}),
     });
 
     // 4. Create Google Event
