@@ -19,7 +19,9 @@
       ],
       "outputs": [
         ".next/**",
-        "!.next/cache/**"
+        "!.next/cache/**",
+        "apps/web/.next/**",
+        "!apps/web/.next/cache/**"
       ]
     },
     "lint": {
