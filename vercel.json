@@ -1,5 +1,6 @@
 {
   "buildCommand": "pnpm --filter mi-consu-web build",
   "outputDirectory": "apps/web/.next",
+  "installCommand": "corepack prepare pnpm@9.1.0 --activate && pnpm install --no-frozen-lockfile",
   "framework": "nextjs"
 }
