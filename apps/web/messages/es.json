@@ -63,9 +63,7 @@
     }
   },
   "Dashboard": {
-    "title": "Dashboard",
     "calendar": "Calendario",
-    "welcomeTitle": "Bienvenida",
     "CalendarList": {
       "title": "Configuración del Calendario",
       "publicSlug": "Slug Público (URL)",
@@ -86,8 +84,6 @@
       "idTaken": "Este ID ya está en uso",
       "invalidFormat": "Formato inválido (solo letras minúsculas, números y guiones)"
     },
-    "welcomeSubtitle": "Bienvenido a tu proyecto",
-    "welcomeBody": "Esta es tu nueva plantilla de proyecto.",
     "create": "Crear Nuevo",
     "createNew": "Crear Nuevo Item",
     "generate": "Crear",

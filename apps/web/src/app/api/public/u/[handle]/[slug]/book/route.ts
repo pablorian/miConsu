@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import connectToDatabase, { User, BookingPage, Appointment } from '@repo/database';
+import connectToDatabase, { User, BookingPage, Appointment, Patient } from '@repo/database';
 
 /**
  * POST /api/public/u/[handle]/[slug]/book
@@ -25,9 +25,9 @@ export async function POST(
     const ownerId    = user._id;
     const calendarId = bp._id.toString();
 
-    const { date, time, patientName, patientEmail, patientPhone, reason, serviceTypeId } = await req.json();
-    if (!date || !time || !patientName) {
-      return NextResponse.json({ error: 'date, time, patientName requeridos' }, { status: 400 });
+    const { date, time, patientDni, patientName, contactEmail, contactPhone, reason, serviceTypeId } = await req.json();
+    if (!date || !time || !patientName || !patientDni) {
+      return NextResponse.json({ error: 'date, time, patientDni y patientName son requeridos' }, { status: 400 });
     }
 
     const [year, month, day] = date.split('-').map(Number);
@@ -87,6 +87,32 @@ export async function POST(
       return NextResponse.json({ error: 'Este horario ya no está disponible' }, { status: 409 });
     }
 
+    // ── Patient lookup / creation by DNI ──────────────────────────────────
+    let patientId: string | null = null;
+    const dniClean = patientDni.trim();
+    if (dniClean) {
+      let patient = await (Patient as any).findOne({
+        userId: ownerId,
+        'personalInfo.dni': dniClean,
+      }).lean() as any;
+
+      if (!patient) {
+        // Split name: assume last word is lastName, rest is name
+        const nameParts = patientName.trim().split(' ');
+        const lastName = nameParts.length > 1 ? nameParts.pop() : undefined;
+        const firstName = nameParts.join(' ') || patientName.trim();
+        patient = await (Patient as any).create({
+          userId: ownerId,
+          name: firstName,
+          lastName: lastName || undefined,
+          email: contactEmail?.trim() || undefined,
+          phone: contactPhone?.trim() || undefined,
+          personalInfo: { dni: dniClean },
+        });
+      }
+      patientId = patient._id.toString();
+    }
+
     // Create appointment
     const appointment = await (Appointment as any).create({
       userId: ownerId,
@@ -94,10 +120,11 @@ export async function POST(
       start,
       end,
       patientName:  patientName.trim(),
-      patientEmail: patientEmail?.trim() || '',
-      patientPhone: patientPhone?.trim() || '',
+      patientEmail: contactEmail?.trim() || '',
+      patientPhone: contactPhone?.trim() || '',
       reason:       reason?.trim() || 'Consulta',
       status:       'pending',
+      ...(patientId ? { patientId } : {}),
       ...(serviceType ? { serviceType: { id: serviceType.id, name: serviceType.name } } : {}),
     });
 
@@ -133,8 +160,8 @@ export async function POST(
               summary: `${reason?.trim() || 'Consulta'}${serviceLabel}: ${patientName.trim()}`,
               description: [
                 `Paciente: ${patientName.trim()}`,
-                patientPhone ? `Tel: ${patientPhone.trim()}` : null,
-                patientEmail ? `Email: ${patientEmail.trim()}` : null,
+                contactPhone ? `Tel: ${contactPhone.trim()}` : null,
+                contactEmail ? `Email: ${contactEmail.trim()}` : null,
                 reason ? `Motivo: ${reason.trim()}` : null,
               ].filter(Boolean).join('\n'),
               start: { dateTime: start.toISOString() },

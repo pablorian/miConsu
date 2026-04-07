@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { name, email, color, percentage } = body;
+    const { name, email, color, percentage, obraSocialPercentages, consultorioId } = body;
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
       email: email?.trim() || undefined,
       color: color || '#6366f1',
       percentage: Number(percentage) || 0,
+      obraSocialPercentages: Array.isArray(obraSocialPercentages) ? obraSocialPercentages : [],
+      consultorioId: consultorioId || null,
       userId: user._id,
     });
 

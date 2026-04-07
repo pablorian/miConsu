@@ -61,7 +61,6 @@ export default async function CalendarPage() {
     <div className="p-6 h-full flex flex-col">
       <CalendarPageClient
         appointments={appointments}
-        isConnected={isConnected}
         serviceRecordsByAppointment={serviceRecordsByAppointment}
       />
     </div>

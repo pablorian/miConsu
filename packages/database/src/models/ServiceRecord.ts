@@ -6,6 +6,7 @@ export interface IServiceRecord extends Document {
   date: Date;
   professional: string;
   professionalId?: mongoose.Types.ObjectId; // optional ref to Professional model
+  consultorioId?: mongoose.Types.ObjectId; // optional ref to Consultorio
   service: string;
   price: number;
   paid: number;
@@ -19,6 +20,7 @@ const ServiceRecordSchema: Schema = new Schema({
   date: { type: Date, required: true, default: Date.now },
   professional: { type: String, required: true },
   professionalId: { type: Schema.Types.ObjectId, ref: 'Professional', default: null },
+  consultorioId: { type: Schema.Types.ObjectId, ref: 'Consultorio', default: null },
   service: { type: String, required: true },
   price: { type: Number, required: true, default: 0 },
   paid: { type: Number, required: true, default: 0 },

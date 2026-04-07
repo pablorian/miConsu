@@ -288,11 +288,14 @@ export default function PublicBookingPage({
   const [loadingSlots,  setLoadingSlots]  = useState(false);
   const [selectedSlot,  setSelectedSlot]  = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    patientName:  '',
-    patientEmail: '',
-    patientPhone: '',
-    reason:       '',
+  const STORAGE_KEY = 'miconsu_booking_form';
+
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' && localStorage.getItem(STORAGE_KEY);
+      if (saved) return { patientDni: '', patientName: '', contactPhone: '', contactEmail: '', reason: '', ...JSON.parse(saved) };
+    } catch {}
+    return { patientDni: '', patientName: '', contactPhone: '', contactEmail: '', reason: '' };
   });
   const [submitting,   setSubmitting]   = useState(false);
   const [submitError,  setSubmitError]  = useState('');
@@ -358,7 +361,7 @@ export default function PublicBookingPage({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.patientName || !selectedDate || !selectedSlot) return;
+    if (!form.patientName || !form.patientDni || !selectedDate || !selectedSlot) return;
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -368,9 +371,10 @@ export default function PublicBookingPage({
         body: JSON.stringify({
           date:          format(selectedDate, 'yyyy-MM-dd'),
           time:          selectedSlot,
+          patientDni:    form.patientDni,
           patientName:   form.patientName,
-          patientEmail:  form.patientEmail,
-          patientPhone:  form.patientPhone,
+          contactPhone:  form.contactPhone,
+          contactEmail:  form.contactEmail,
           reason:        form.reason,
           serviceTypeId: selectedService?.id,
         }),
@@ -379,6 +383,7 @@ export default function PublicBookingPage({
         const d = await res.json();
         throw new Error(d.error || 'Error al confirmar el turno');
       }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(form)); } catch {}
       setConfirmed(true);
       setStep('confirm');
     } catch (err: any) {
@@ -664,22 +669,68 @@ export default function PublicBookingPage({
               <span>{selectedSlot} ({effectiveDuration} min)</span>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
-              <h2 className="text-base font-semibold text-gray-800 mb-4">Tus datos</h2>
-              <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* ── Sección 1: Datos del paciente ─────────────────────────── */}
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: accentColor }}>1</div>
+                  <h2 className="text-sm font-semibold text-gray-800">Datos del paciente</h2>
+                </div>
+
+                {/* DNI */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    DNI <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    maxLength={10}
+                    placeholder="Ej: 12345678"
+                    value={form.patientDni}
+                    onChange={e => setForm(prev => ({ ...prev, patientDni: e.target.value.replace(/\D/g, '') }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 placeholder:text-gray-300 transition-all"
+                    style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
+                  />
+                </div>
+
+                {/* Nombre del paciente */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">
+                    Nombre completo <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Juan García"
+                    value={form.patientName}
+                    onChange={e => setForm(prev => ({ ...prev, patientName: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 focus:outline-none focus:ring-2 placeholder:text-gray-300 transition-all"
+                    style={{ '--tw-ring-color': accentColor } as React.CSSProperties}
+                  />
+                </div>
+              </div>
+
+              {/* ── Sección 2: Datos del contacto/responsable ──────────────── */}
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: accentColor }}>2</div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-gray-800">Datos del contacto</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">Quien realiza la reserva. Puede ser un familiar o responsable.</p>
+                  </div>
+                </div>
+
                 {[
-                  { key: 'patientName',  label: 'Nombre completo',    type: 'text',  required: true,  placeholder: 'Ej: María García' },
-                  { key: 'patientEmail', label: 'Email',              type: 'email', required: false, placeholder: 'Ej: maria@email.com' },
-                  { key: 'patientPhone', label: 'Teléfono',           type: 'tel',   required: false, placeholder: 'Ej: +54 9 11 1234-5678' },
-                  { key: 'reason',       label: 'Motivo de consulta', type: 'text',  required: false, placeholder: 'Ej: Primera consulta, seguimiento…' },
-                ].map(({ key, label, type, required, placeholder }) => (
+                  { key: 'contactPhone', label: 'Teléfono',           type: 'tel',   placeholder: 'Ej: +54 9 11 1234-5678' },
+                  { key: 'contactEmail', label: 'Email',              type: 'email', placeholder: 'Ej: maria@email.com' },
+                  { key: 'reason',       label: 'Motivo de consulta', type: 'text',  placeholder: 'Ej: Primera consulta, seguimiento…' },
+                ].map(({ key, label, type, placeholder }) => (
                   <div key={key}>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      {label} {required && <span className="text-red-400">*</span>}
-                    </label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
                     <input
                       type={type}
-                      required={required}
                       placeholder={placeholder}
                       value={form[key as keyof typeof form]}
                       onChange={e => setForm(prev => ({ ...prev, [key]: e.target.value }))}
@@ -688,26 +739,26 @@ export default function PublicBookingPage({
                     />
                   </div>
                 ))}
+              </div>
 
-                {submitError && (
-                  <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 rounded-xl text-xs text-red-600">
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                      <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
-                    </svg>
-                    {submitError}
-                  </div>
-                )}
+              {submitError && (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-red-50 rounded-xl text-xs text-red-600">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+                  </svg>
+                  {submitError}
+                </div>
+              )}
 
-                <button
-                  type="submit"
-                  disabled={submitting || !form.patientName}
-                  className="w-full py-3 rounded-2xl text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all mt-2"
-                  style={{ background: accentColor }}
-                >
-                  {submitting ? 'Confirmando…' : 'Confirmar turno'}
-                </button>
-              </form>
-            </div>
+              <button
+                type="submit"
+                disabled={submitting || !form.patientDni || !form.patientName}
+                className="w-full py-3 rounded-2xl text-sm font-semibold text-white shadow-md hover:brightness-110 active:scale-95 disabled:opacity-50 transition-all"
+                style={{ background: accentColor }}
+              >
+                {submitting ? 'Confirmando…' : 'Confirmar turno'}
+              </button>
+            </form>
           </div>
         )}
       </div>

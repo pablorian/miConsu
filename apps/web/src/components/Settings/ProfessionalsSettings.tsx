@@ -2,12 +2,31 @@
 
 import { useState, useEffect } from 'react';
 
+interface Consultorio {
+  _id: string;
+  name: string;
+}
+
+interface ObraSocial {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+interface ObraSocialPercentage {
+  obraSocialId: string;
+  name: string;
+  percentage: number;
+}
+
 interface Professional {
   _id: string;
   name: string;
   email?: string;
   color?: string;
   percentage?: number;
+  obraSocialPercentages?: ObraSocialPercentage[];
+  consultorioId?: string;
 }
 
 const PRESET_COLORS = [
@@ -22,18 +41,54 @@ function getInitials(name: string) {
 
 interface ProfFormProps {
   initial?: Partial<Professional>;
+  consultorios: Consultorio[];
+  obrasSociales: ObraSocial[];
   onSave: (data: Omit<Professional, '_id'>) => Promise<void>;
   onCancel: () => void;
   loading: boolean;
 }
 
-function ProfForm({ initial, onSave, onCancel, loading }: ProfFormProps) {
+function ProfForm({ initial, consultorios, obrasSociales, onSave, onCancel, loading }: ProfFormProps) {
   const [form, setForm] = useState({
     name: initial?.name || '',
     email: initial?.email || '',
     color: initial?.color || '#6366f1',
     percentage: initial?.percentage ?? 0,
+    obraSocialPercentages: initial?.obraSocialPercentages ?? [] as ObraSocialPercentage[],
+    consultorioId: initial?.consultorioId || '',
   });
+
+  // State for the "add override" row
+  const [newOsId,  setNewOsId]  = useState('');
+  const [newOsPct, setNewOsPct] = useState<number>(0);
+
+  const usedIds = form.obraSocialPercentages.map(o => o.obraSocialId);
+  const availableOs = obrasSociales.filter(os => !usedIds.includes(os._id));
+
+  const addOverride = () => {
+    if (!newOsId) return;
+    const os = obrasSociales.find(o => o._id === newOsId);
+    if (!os) return;
+    setForm(f => ({
+      ...f,
+      obraSocialPercentages: [...f.obraSocialPercentages, { obraSocialId: os._id, name: os.name, percentage: newOsPct }],
+    }));
+    setNewOsId('');
+    setNewOsPct(0);
+  };
+
+  const removeOverride = (obraSocialId: string) => {
+    setForm(f => ({ ...f, obraSocialPercentages: f.obraSocialPercentages.filter(o => o.obraSocialId !== obraSocialId) }));
+  };
+
+  const updateOverridePct = (obraSocialId: string, pct: number) => {
+    setForm(f => ({
+      ...f,
+      obraSocialPercentages: f.obraSocialPercentages.map(o =>
+        o.obraSocialId === obraSocialId ? { ...o, percentage: pct } : o
+      ),
+    }));
+  };
 
   const inputClass = 'w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-2 focus:ring-primary';
   const labelClass = 'block text-xs font-medium text-muted-foreground mb-1';
@@ -66,7 +121,7 @@ function ProfForm({ initial, onSave, onCancel, loading }: ProfFormProps) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelClass}>Porcentaje de liquidación</label>
+          <label className={labelClass}>Porcentaje genérico</label>
           <div className="relative">
             <input
               type="number"
@@ -77,20 +132,102 @@ function ProfForm({ initial, onSave, onCancel, loading }: ProfFormProps) {
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
           </div>
+          <p className="text-xs text-muted-foreground mt-1">Se aplica cuando no hay un % específico por obra social.</p>
         </div>
         <div>
-          <label className={labelClass}>Color de avatar</label>
-          <div className="flex flex-wrap gap-2 pt-1">
-            {PRESET_COLORS.map(c => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, color: c }))}
-                className={`w-6 h-6 rounded-full border-2 transition-transform ${form.color === c ? 'border-foreground scale-110' : 'border-transparent'}`}
-                style={{ backgroundColor: c }}
-              />
+          <label className={labelClass}>Consultorio</label>
+          <select
+            value={form.consultorioId}
+            onChange={e => setForm(f => ({ ...f, consultorioId: e.target.value }))}
+            className={inputClass}
+          >
+            <option value="">Sin consultorio asignado</option>
+            {consultorios.map(c => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Porcentajes por obra social */}
+      <div className="space-y-2">
+        <label className={labelClass}>% por obra social <span className="text-gray-400 font-normal">(opcional)</span></label>
+
+        {form.obraSocialPercentages.length > 0 && (
+          <div className="space-y-1.5">
+            {form.obraSocialPercentages.map(o => (
+              <div key={o.obraSocialId} className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-zinc-800 rounded-lg">
+                <span className="flex-1 text-sm text-foreground truncate">{o.name}</span>
+                <div className="relative w-24 flex-shrink-0">
+                  <input
+                    type="number"
+                    value={o.percentage}
+                    onChange={e => updateOverridePct(o.obraSocialId, Number(e.target.value))}
+                    min={0} max={100}
+                    className="w-full px-2 py-1 text-sm border border-gray-200 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:ring-1 focus:ring-primary pr-6"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeOverride(o.obraSocialId)}
+                  className="p-1 text-muted-foreground hover:text-red-500 transition-colors flex-shrink-0"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
             ))}
           </div>
+        )}
+
+        {availableOs.length > 0 && (
+          <div className="flex items-center gap-2">
+            <select
+              value={newOsId}
+              onChange={e => setNewOsId(e.target.value)}
+              className="flex-1 px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Seleccionar obra social…</option>
+              {availableOs.map(os => (
+                <option key={os._id} value={os._id}>{os.name}</option>
+              ))}
+            </select>
+            <div className="relative w-24 flex-shrink-0">
+              <input
+                type="number"
+                value={newOsPct}
+                onChange={e => setNewOsPct(Number(e.target.value))}
+                min={0} max={100}
+                className="w-full px-2 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent focus:outline-none focus:ring-1 focus:ring-primary pr-6"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+            <button
+              type="button"
+              onClick={addOverride}
+              disabled={!newOsId}
+              className="px-3 py-1.5 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            >
+              Agregar
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className={labelClass}>Color de avatar</label>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {PRESET_COLORS.map(c => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, color: c }))}
+              className={`w-6 h-6 rounded-full border-2 transition-transform ${form.color === c ? 'border-foreground scale-110' : 'border-transparent'}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
         </div>
       </div>
 
@@ -113,18 +250,32 @@ function ProfForm({ initial, onSave, onCancel, loading }: ProfFormProps) {
 
 export default function ProfessionalsSettings() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [consultorios, setConsultorios] = useState<Consultorio[]>([]);
+  const [obrasSociales, setObrasSociales] = useState<ObraSocial[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const fetchProfessionals = async () => {
+  const fetchData = async () => {
     try {
-      const res = await fetch('/api/professionals');
-      if (res.ok) {
-        const data = await res.json();
+      const [profRes, consRes, osRes] = await Promise.all([
+        fetch('/api/professionals'),
+        fetch('/api/consultorios'),
+        fetch('/api/obras-sociales'),
+      ]);
+      if (profRes.ok) {
+        const data = await profRes.json();
         setProfessionals(data.professionals || []);
+      }
+      if (consRes.ok) {
+        const data = await consRes.json();
+        setConsultorios(data.consultorios || []);
+      }
+      if (osRes.ok) {
+        const data = await osRes.json();
+        setObrasSociales(data.items || []);
       }
     } catch (err) {
       console.error(err);
@@ -133,7 +284,7 @@ export default function ProfessionalsSettings() {
     }
   };
 
-  useEffect(() => { fetchProfessionals(); }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const handleCreate = async (data: Omit<Professional, '_id'>) => {
     setSaving(true);
@@ -215,6 +366,8 @@ export default function ProfessionalsSettings() {
         <div className="p-5 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-zinc-800/30">
           <p className="text-sm font-medium text-foreground mb-3">Nuevo profesional</p>
           <ProfForm
+            consultorios={consultorios}
+            obrasSociales={obrasSociales}
             onSave={handleCreate}
             onCancel={() => setShowForm(false)}
             loading={saving}
@@ -243,6 +396,8 @@ export default function ProfessionalsSettings() {
                   <p className="text-sm font-medium text-foreground mb-3">Editar profesional</p>
                   <ProfForm
                     initial={prof}
+                    consultorios={consultorios}
+                    obrasSociales={obrasSociales}
                     onSave={(data) => handleUpdate(prof._id, data)}
                     onCancel={() => setEditingId(null)}
                     loading={saving}
@@ -262,7 +417,11 @@ export default function ProfessionalsSettings() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground">{prof.name}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {[prof.email, prof.percentage != null ? `${prof.percentage}% liquidación` : null].filter(Boolean).join(' · ') || 'Sin datos adicionales'}
+                      {[
+                        prof.email,
+                        prof.percentage != null ? `${prof.percentage}% liquidación` : null,
+                        prof.consultorioId ? consultorios.find(c => c._id === prof.consultorioId)?.name : null,
+                      ].filter(Boolean).join(' · ') || 'Sin datos adicionales'}
                     </p>
                   </div>
 

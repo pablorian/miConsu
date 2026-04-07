@@ -175,7 +175,6 @@ function Step1({ data, onChange }: { data: Step1Data; onChange: (d: Step1Data) =
             )}
           </div>
 
-          {/* Dropdown */}
           {showDropdown && filtered.length > 0 && !data.selectedPatient && (
             <div className="absolute z-10 mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden">
               {filtered.map(p => (
@@ -201,7 +200,6 @@ function Step1({ data, onChange }: { data: Step1Data; onChange: (d: Step1Data) =
             </div>
           )}
 
-          {/* Selected patient chip */}
           {data.selectedPatient && (
             <div className="mt-2 flex items-center gap-3 px-3 py-2.5 bg-primary/5 border border-primary/20 rounded-xl">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold flex-shrink-0">

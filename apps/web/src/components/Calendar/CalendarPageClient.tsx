@@ -4,9 +4,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { format, isBefore, isToday, isTomorrow, isYesterday, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
-import CalendarView from './CalendarView';
-import ConnectGoogleCalendar from './ConnectGoogleCalendar';
-import AppointmentList from './AppointmentList';
 import NewAppointmentWizard from './NewAppointmentWizard';
 
 interface Appointment {
@@ -29,10 +26,23 @@ interface ServiceRecordSummary {
   professional: string;
 }
 
+interface Consultorio {
+  _id: string;
+  name: string;
+}
+
 interface Professional {
   _id: string;
   name: string;
   color?: string;
+  consultorioId?: string;
+}
+
+interface PrestacionTemplate {
+  _id: string;
+  name: string;
+  price: number;
+  description: string;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
@@ -95,7 +105,10 @@ interface CreatePrestacionModalProps {
 }
 
 function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestacionModalProps) {
-  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [professionals, setProfessionals]         = useState<Professional[]>([]);
+  const [consultorios, setConsultorios]           = useState<Consultorio[]>([]);
+  const [templates, setTemplates]                 = useState<PrestacionTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate]   = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -104,6 +117,7 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
     service: appointment.reason || '',
     professional: '',
     professionalId: '',
+    consultorioId: '',
     price: 0,
     paid: 0,
   });
@@ -113,7 +127,24 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
       .then(r => r.json())
       .then(d => setProfessionals(d.professionals || []))
       .catch(() => {});
+    fetch('/api/consultorios')
+      .then(r => r.json())
+      .then(d => setConsultorios(d.consultorios || []))
+      .catch(() => {});
+    fetch('/api/prestaciones')
+      .then(r => r.json())
+      .then(d => setTemplates(d.items || []))
+      .catch(() => {});
   }, []);
+
+  const handleTemplateSelect = (id: string) => {
+    setSelectedTemplate(id);
+    if (!id) return;
+    const tpl = templates.find(t => t._id === id);
+    if (tpl) {
+      setForm(prev => ({ ...prev, service: tpl.name, price: tpl.price }));
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -123,12 +154,17 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
   const handleProfSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === '') {
-      setForm(prev => ({ ...prev, professionalId: '', professional: '' }));
+      setForm(prev => ({ ...prev, professionalId: '', professional: '', consultorioId: '' }));
     } else if (val === '__manual__') {
-      setForm(prev => ({ ...prev, professionalId: '' }));
+      setForm(prev => ({ ...prev, professionalId: '', consultorioId: '' }));
     } else {
       const prof = professionals.find(p => p._id === val);
-      if (prof) setForm(prev => ({ ...prev, professionalId: prof._id, professional: prof.name }));
+      if (prof) setForm(prev => ({
+        ...prev,
+        professionalId: prof._id,
+        professional: prof.name,
+        consultorioId: prof.consultorioId || '',
+      }));
     }
   };
 
@@ -149,6 +185,7 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
           service: form.service,
           professional: form.professional,
           professionalId: form.professionalId || null,
+          consultorioId: form.consultorioId || null,
           price: form.price,
           paid: form.paid,
           appointmentId: appointment._id,
@@ -173,12 +210,10 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
   const inputCls = 'w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50';
 
   return (
-    /* Backdrop */
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
           <div>
             <h3 className="text-base font-semibold text-foreground">Nueva prestación</h3>
@@ -227,119 +262,103 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
 
-            {/* Date + Service */}
+            {/* Selector de catálogo */}
+            {templates.length > 0 && (
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Seleccionar del catálogo
+                </label>
+                <select
+                  value={selectedTemplate}
+                  onChange={e => handleTemplateSelect(e.target.value)}
+                  className={inputCls}
+                >
+                  <option value="">— Nueva prestación manual —</option>
+                  {templates.map(t => (
+                    <option key={t._id} value={t._id}>
+                      {t.name} · ${t.price.toLocaleString('es-AR')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Fecha</label>
-                <input
-                  type="date"
-                  name="date"
-                  value={form.date}
-                  onChange={handleChange}
-                  required
-                  className={inputCls}
-                />
+                <input type="date" name="date" value={form.date} onChange={handleChange} required className={inputCls} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Prestación</label>
-                <input
-                  type="text"
-                  name="service"
-                  value={form.service}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ej: Consulta general"
-                  className={inputCls}
-                />
+                <input type="text" name="service" value={form.service} onChange={handleChange} required placeholder="Ej: Consulta general" className={inputCls} />
               </div>
             </div>
 
-            {/* Professional */}
-            <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Profesional <span className="opacity-60">(opcional)</span>
-              </label>
-              {professionals.length > 0 ? (
-                <div className="space-y-1.5">
-                  <select value={selectValue} onChange={handleProfSelect} className={inputCls}>
-                    <option value="">Sin profesional</option>
-                    {professionals.map(p => (
-                      <option key={p._id} value={p._id}>{p.name}</option>
-                    ))}
-                    <option value="__manual__">Otro (ingresar manualmente)</option>
-                  </select>
-                  {(selectValue === '__manual__' || (!form.professionalId && form.professional)) && (
-                    <input
-                      type="text"
-                      name="professional"
-                      value={form.professional}
-                      onChange={handleChange}
-                      placeholder="Nombre del profesional"
-                      className={inputCls}
-                    />
-                  )}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  name="professional"
-                  value={form.professional}
-                  onChange={handleChange}
-                  placeholder="Nombre del profesional"
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Profesional <span className="opacity-60">(opcional)</span>
+                </label>
+                {professionals.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <select value={selectValue} onChange={handleProfSelect} className={inputCls}>
+                      <option value="">Sin profesional</option>
+                      {professionals.map(p => (
+                        <option key={p._id} value={p._id}>{p.name}</option>
+                      ))}
+                      <option value="__manual__">Otro (ingresar manualmente)</option>
+                    </select>
+                    {(selectValue === '__manual__' || (!form.professionalId && form.professional)) && (
+                      <input type="text" name="professional" value={form.professional} onChange={handleChange} placeholder="Nombre del profesional" className={inputCls} />
+                    )}
+                  </div>
+                ) : (
+                  <input type="text" name="professional" value={form.professional} onChange={handleChange} placeholder="Nombre del profesional" className={inputCls} />
+                )}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">
+                  Consultorio <span className="opacity-60">(opcional)</span>
+                </label>
+                <select
+                  value={form.consultorioId}
+                  onChange={e => setForm(prev => ({ ...prev, consultorioId: e.target.value }))}
                   className={inputCls}
-                />
-              )}
+                >
+                  <option value="">Sin consultorio</option>
+                  {consultorios.map(c => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Price + Paid (seña) */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-medium text-muted-foreground mb-1">Precio</label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-muted-foreground text-sm">$</span>
-                  <input
-                    type="number"
-                    name="price"
-                    value={form.price}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    className={inputCls + ' pl-7'}
-                  />
+                  <input type="number" name="price" value={form.price} onChange={handleChange} min="0" step="0.01" className={inputCls + ' pl-7'} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Seña / Pago
-                </label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Seña / Pago</label>
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-muted-foreground text-sm">$</span>
-                  <input
-                    type="number"
-                    name="paid"
-                    value={form.paid}
-                    onChange={handleChange}
-                    min="0"
-                    step="0.01"
-                    className={inputCls + ' pl-7'}
-                  />
+                  <input type="number" name="paid" value={form.paid} onChange={handleChange} min="0" step="0.01" className={inputCls + ' pl-7'} />
                 </div>
               </div>
             </div>
 
-            {/* Info: seña hint */}
             {form.paid > 0 && form.price > 0 && form.paid < form.price && (
               <div className="flex items-start gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800/30 rounded-lg text-xs text-amber-700 dark:text-amber-400">
                 <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                 </svg>
-                <span>
-                  Saldo pendiente: <strong>${(form.price - form.paid).toFixed(2)}</strong>. El profesional podrá liquidarse sobre lo cobrado.
-                </span>
+                <span>Saldo pendiente: <strong>${(form.price - form.paid).toFixed(2)}</strong>. El profesional podrá liquidarse sobre lo cobrado.</span>
               </div>
             )}
 
-            {/* Info: professional linked */}
             {form.professionalId && (
               <div className="flex items-start gap-2 px-3 py-2 bg-violet-50 dark:bg-violet-900/10 border border-violet-100 dark:border-violet-800/30 rounded-lg text-xs text-violet-700 dark:text-violet-400">
                 <svg className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -349,20 +368,11 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-gray-100 dark:bg-zinc-800 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-              >
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-medium text-muted-foreground bg-gray-100 dark:bg-zinc-800 rounded-lg hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors">
                 Cancelar
               </button>
-              <button
-                type="submit"
-                disabled={loading || !form.service}
-                className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
-              >
+              <button type="submit" disabled={loading || !form.service} className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
                 {loading ? 'Guardando…' : 'Guardar prestación'}
               </button>
             </div>
@@ -384,7 +394,6 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
   const [apps, setApps] = useState(initialApps);
   const [srMap, setSrMap] = useState<Record<string, ServiceRecordSummary>>(initialSRMap);
 
-  // Merge new appointments added from the wizard without wiping local status changes
   useEffect(() => {
     setApps(prev => {
       const prevIds = new Set(prev.map(a => a._id));
@@ -392,6 +401,7 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
       return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
     });
   }, [initialApps]);
+
   const [subTab, setSubTab] = useState<'proximos' | 'pasados'>('proximos');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [modalApp, setModalApp] = useState<Appointment | null>(null);
@@ -410,7 +420,6 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
     statusFilter === 'todos' || a.status === statusFilter
   );
 
-  // Group by calendar day
   const grouped: { key: string; label: string; items: Appointment[] }[] = [];
   for (const app of list) {
     const d = new Date(app.start);
@@ -420,7 +429,6 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
     else if (isTomorrow(d))   label = `Mañana · ${format(d, "d 'de' MMMM", { locale: es })}`;
     else if (isYesterday(d))  label = `Ayer · ${format(d, "d 'de' MMMM", { locale: es })}`;
     else                      label = format(d, "EEEE d 'de' MMMM yyyy", { locale: es });
-    // capitalise first letter
     label = label.charAt(0).toUpperCase() + label.slice(1);
 
     const existing = grouped.find(g => g.key === key);
@@ -434,6 +442,25 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
 
   const handleSaved = useCallback((appId: string, sr: ServiceRecordSummary) => {
     setSrMap(prev => ({ ...prev, [appId]: sr }));
+  }, []);
+
+  const [completing, setCompleting] = useState<string | null>(null);
+  const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+
+  const handleComplete = useCallback(async (app: Appointment) => {
+    setCompleting(app._id);
+    try {
+      const res = await fetch(`/api/appointments/${app._id}/complete`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setApps(prev => prev.map(a => a._id === app._id ? { ...a, status: 'done' } : a));
+        setCompletedIds(prev => new Set(prev).add(app._id));
+        if (data.taskCreated) {
+          // Brief visual feedback — optional toast could go here
+        }
+      }
+    } catch (e) { console.error(e); }
+    finally { setCompleting(null); }
   }, []);
 
   const tabCls = (active: boolean) =>
@@ -452,7 +479,6 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
       )}
 
       <div className="flex flex-col gap-4">
-        {/* Sub-tabs + filter */}
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-1 bg-gray-100 dark:bg-zinc-800 p-1 rounded-xl">
             <button className={tabCls(subTab === 'proximos')} onClick={() => setSubTab('proximos')}>
@@ -474,7 +500,6 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
           </select>
         </div>
 
-        {/* Grouped cards */}
         <div className="flex flex-col gap-5">
           {list.length === 0 ? (
             <div className="py-16 text-center text-sm text-muted-foreground bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-xl">
@@ -484,8 +509,6 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
             <>
               {grouped.map(group => (
                 <div key={group.key} className="flex flex-col gap-2">
-
-                  {/* Day header */}
                   <div className="flex items-center gap-3">
                     <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {group.label}
@@ -496,51 +519,37 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                     </span>
                   </div>
 
-                  {/* Cards for this day */}
                   {group.items.map(app => {
                     const start = new Date(app.start);
                     const durMin = getDurationMin(app.start, app.end);
                     const sr = srMap[app._id];
                     const balance = sr ? sr.price - sr.paid : null;
                     const isPaid = balance !== null && balance <= 0;
+                    const isAlreadyDone = app.status === 'done' || completedIds.has(app._id);
+                    const showCompleteBtn = subTab === 'pasados' && !!sr && !isAlreadyDone;
 
                     return (
                       <div
                         key={app._id}
                         className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-700 transition-colors"
                       >
-                        {/* ── Línea 1: datos del turno ── */}
                         <div className="flex items-center gap-4 px-4 py-3 flex-wrap">
-
-                          {/* Horario */}
                           <div className="w-20 shrink-0">
-                            <p className="text-sm font-semibold text-foreground tabular-nums">
-                              {format(start, 'HH:mm')}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {durMin} min
-                            </p>
+                            <p className="text-sm font-semibold text-foreground tabular-nums">{format(start, 'HH:mm')}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{durMin} min</p>
                           </div>
-
-                          {/* Paciente */}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{app.patientName}</p>
                             {app.patientPhone && (
                               <p className="text-xs text-muted-foreground mt-0.5">{app.patientPhone}</p>
                             )}
                           </div>
-
-                          {/* Motivo */}
                           <div className="hidden sm:block flex-1 min-w-0">
                             <p className="text-xs text-muted-foreground truncate">{app.reason || '—'}</p>
                           </div>
-
-                          {/* Estado */}
                           <div className="shrink-0">
                             <StatusSelect appId={app._id} status={app.status} onUpdate={handleUpdate} />
                           </div>
-
-                          {/* Acciones */}
                           <div className="flex items-center gap-2 shrink-0">
                             {!sr && (
                               <button
@@ -554,49 +563,33 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                               </button>
                             )}
                             {app.patientId && (
-                              <Link
-                                href={`/dashboard/patients/${app.patientId}`}
-                                className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap"
-                              >
+                              <Link href={`/dashboard/patients/${app.patientId}`} className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">
                                 Ver paciente →
                               </Link>
                             )}
                           </div>
                         </div>
 
-                        {/* ── Línea 2: prestación (solo si existe) ── */}
                         {sr && (
                           <div className="flex items-center gap-4 px-4 py-2.5 border-t border-dashed border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-zinc-800/30 flex-wrap">
-
-                            {/* Label */}
                             <div className="w-20 shrink-0 flex items-center gap-1.5">
                               <svg className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                               </svg>
                               <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Prest.</span>
                             </div>
-
-                            {/* Servicio */}
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-medium text-foreground truncate">{sr.service}</p>
                             </div>
-
-                            {/* Profesional */}
                             <div className="hidden sm:block flex-1 min-w-0">
-                              <p className="text-xs text-muted-foreground truncate">
-                                {sr.professional || '—'}
-                              </p>
+                              <p className="text-xs text-muted-foreground truncate">{sr.professional || '—'}</p>
                             </div>
-
-                            {/* Precio / Seña */}
                             <div className="flex items-center gap-1 text-xs shrink-0 text-muted-foreground">
                               <span>Seña</span>
                               <span className="font-medium text-foreground">${sr.paid.toFixed(0)}</span>
                               <span>/</span>
                               <span>${sr.price.toFixed(0)}</span>
                             </div>
-
-                            {/* Saldo badge */}
                             <div className="shrink-0">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${
                                 isPaid
@@ -606,7 +599,30 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                                 {isPaid ? '✓ Pagado' : `Debe $${balance!.toFixed(0)}`}
                               </span>
                             </div>
-
+                            {showCompleteBtn && (
+                              <button
+                                disabled={completing === app._id}
+                                onClick={() => handleComplete(app)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-60 rounded-lg transition-colors whitespace-nowrap shadow-sm"
+                              >
+                                {completing === app._id ? (
+                                  <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                                  </svg>
+                                ) : (
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                  </svg>
+                                )}
+                                Completar
+                              </button>
+                            )}
+                            {isAlreadyDone && subTab === 'pasados' && !!sr && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 whitespace-nowrap">
+                                ✓ Completado
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -630,23 +646,16 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
 
 interface CalendarPageClientProps {
   appointments: Appointment[];
-  isConnected: boolean;
   serviceRecordsByAppointment: Record<string, ServiceRecordSummary>;
 }
 
-export default function CalendarPageClient({ appointments, isConnected, serviceRecordsByAppointment }: CalendarPageClientProps) {
-  const [activeTab, setActiveTab] = useState<'lista' | 'calendario'>('lista');
+export default function CalendarPageClient({ appointments, serviceRecordsByAppointment }: CalendarPageClientProps) {
   const [showWizard, setShowWizard] = useState(false);
   const [allAppointments, setAllAppointments] = useState(appointments);
 
   const handleCreated = (app: any) => {
     setAllAppointments(prev => [...prev, app]);
   };
-
-  const tabCls = (active: boolean) =>
-    `px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${active
-      ? 'border-primary text-primary'
-      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300 dark:hover:border-gray-600'}`;
 
   return (
     <div className="flex flex-col gap-0 h-full">
@@ -657,9 +666,8 @@ export default function CalendarPageClient({ appointments, isConnected, serviceR
         />
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-foreground">Calendario</h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-xl font-bold text-foreground">Turnos</h1>
         <button
           onClick={() => setShowWizard(true)}
           className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
@@ -671,38 +679,7 @@ export default function CalendarPageClient({ appointments, isConnected, serviceR
         </button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-800 mb-5">
-        <button className={tabCls(activeTab === 'lista')} onClick={() => setActiveTab('lista')}>
-          Lista
-        </button>
-        <button className={tabCls(activeTab === 'calendario')} onClick={() => setActiveTab('calendario')}>
-          Calendario
-        </button>
-      </div>
-
-      {/* Lista tab */}
-      {activeTab === 'lista' && (
-        <ListView appointments={allAppointments} serviceRecordsByAppointment={serviceRecordsByAppointment} />
-      )}
-
-      {/* Calendario tab */}
-      {activeTab === 'calendario' && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 flex-1 min-h-0" style={{ minHeight: '600px' }}>
-          <div className="lg:col-span-1 h-full min-h-0">
-            <AppointmentList appointments={appointments} />
-          </div>
-          <div className="lg:col-span-3 h-full min-h-0 overflow-y-auto bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-gray-800">
-            {isConnected ? (
-              <CalendarView />
-            ) : (
-              <div className="flex justify-center py-12">
-                <ConnectGoogleCalendar />
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <ListView appointments={allAppointments} serviceRecordsByAppointment={serviceRecordsByAppointment} />
     </div>
   );
 }

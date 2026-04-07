@@ -57,5 +57,11 @@ export * from './models/ProfessionalLiquidation';
 export * from './models/Consultorio';
 export * from './models/ConsultorioBooking';
 export * from './models/BookingPage';
+export * from './models/PrestacionTemplate';
+export * from './models/ObraSocial';
+export * from './models/TaskBoard';
+export * from './models/Task';
+export * from './models/UserSettings';
+export * from './models/GenericTransaction';
 
 export default connectToDatabase;

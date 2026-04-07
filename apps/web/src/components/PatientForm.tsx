@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DentalRecordList from './DentalRecord/DentalRecordList';
 import DentalRecordForm from './DentalRecord/DentalRecordForm';
@@ -67,6 +67,14 @@ export default function PatientForm({ initialData }: PatientFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [obrasSociales, setObrasSociales] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/obras-sociales')
+      .then(r => r.json())
+      .then(d => setObrasSociales((d.items || []).map((i: any) => i.name)))
+      .catch(() => {});
+  }, []);
   const [activeTab, setActiveTab] = useState<TabId>(() => {
     const tabParam = searchParams.get('tab');
     const validTabs: TabId[] = ['info', 'antecedentes', 'evolucion', 'odontogram', 'tratamientos', 'periodontogram', 'files', 'turnos', 'billetera'];
@@ -283,7 +291,20 @@ export default function PatientForm({ initialData }: PatientFormProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className={labelClass}>Nombre</label>
-                    <input type="text" value={formData.medicalCoverage?.name || ''} onChange={(e) => handleNestedChange('medicalCoverage', 'name', e.target.value)} className={inputClass} placeholder="Ej: OSDE, PAMI..." />
+                    <input
+                      type="text"
+                      list="obras-sociales-list"
+                      value={formData.medicalCoverage?.name || ''}
+                      onChange={(e) => handleNestedChange('medicalCoverage', 'name', e.target.value)}
+                      className={inputClass}
+                      placeholder="Particular, OSDE, Swiss Medical…"
+                      autoComplete="off"
+                    />
+                    <datalist id="obras-sociales-list">
+                      {obrasSociales.map(name => (
+                        <option key={name} value={name} />
+                      ))}
+                    </datalist>
                   </div>
                   <div>
                     <label className={labelClass}>Plan</label>

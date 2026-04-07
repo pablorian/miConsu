@@ -5,6 +5,8 @@ import connectToDatabase from '@repo/database';
 import { User } from '@repo/database';
 import GoogleCalendarIntegration from '@/components/GoogleCalendarIntegration';
 import PublicHandleEditor from '@/components/Settings/PublicHandleEditor';
+import PrestacionesEditor from '@/components/Settings/PrestacionesEditor';
+import AutoFlowsSettings from '@/components/Settings/AutoFlowsSettings';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
@@ -51,7 +53,7 @@ export default async function SettingsPage({
         <p className="text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      {/* Quick nav */}
+      {/* Quick nav cards */}
       <Link
         href="/dashboard/settings/professionals"
         className="group flex items-center justify-between bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-xl px-5 py-4 hover:border-primary/40 hover:shadow-sm transition-all"
@@ -72,6 +74,42 @@ export default async function SettingsPage({
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </Link>
+
+      {/* Prestaciones */}
+      <div className="border rounded-xl p-6 bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-800">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Catálogo de prestaciones</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Configurá tus prestaciones habituales con su precio para agilizar el registro de turnos.
+            </p>
+          </div>
+        </div>
+        <PrestacionesEditor />
+      </div>
+
+      {/* Flujos automáticos */}
+      <div className="border rounded-xl p-6 bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-800">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Flujos automáticos</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Automatizá acciones que se ejecutan cuando completás un turno.
+            </p>
+          </div>
+        </div>
+        <AutoFlowsSettings />
+      </div>
 
       {/* Public handle / profile URL */}
       <div className="border rounded-xl p-6 bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-800">

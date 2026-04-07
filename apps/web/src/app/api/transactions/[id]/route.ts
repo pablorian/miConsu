@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Professional } from '@repo/database';
+import connectToDatabase, { User, GenericTransaction } from '@repo/database';
 
 async function getUser() {
   const cookieStore = await cookies();
@@ -15,7 +15,7 @@ async function getUser() {
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getUser();
@@ -23,23 +23,24 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, email, color, percentage, obraSocialPercentages, consultorioId } = body;
+    const { type, date, amount, concept, category, paymentMethod, notes } = body;
 
-    const professional = await Professional.findOneAndUpdate(
+    const transaction = await (GenericTransaction as any).findOneAndUpdate(
       { _id: id, userId: user._id },
       {
-        name: name?.trim(),
-        email: email?.trim() || undefined,
-        color,
-        percentage: Number(percentage) || 0,
-        obraSocialPercentages: Array.isArray(obraSocialPercentages) ? obraSocialPercentages : [],
-        consultorioId: consultorioId || null,
+        type,
+        date: date ? new Date(date) : undefined,
+        amount: Number(amount),
+        concept: concept?.trim(),
+        category: category?.trim() || undefined,
+        paymentMethod: paymentMethod?.trim() || undefined,
+        notes: notes?.trim() || undefined,
       },
-      { new: true }
+      { new: true },
     );
 
-    if (!professional) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json({ professional });
+    if (!transaction) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ transaction });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -47,15 +48,19 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { id } = await params;
-    const professional = await Professional.findOneAndDelete({ _id: id, userId: user._id });
-    if (!professional) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const transaction = await (GenericTransaction as any).findOneAndDelete({
+      _id: id,
+      userId: user._id,
+    });
+
+    if (!transaction) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

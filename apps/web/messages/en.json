@@ -63,11 +63,7 @@
     }
   },
   "Dashboard": {
-    "title": "Dashboard",
     "calendar": "Calendar",
-    "welcomeTitle": "Welcome",
-    "welcomeSubtitle": "Welcome to your project",
-    "welcomeBody": "This is your new project template.",
     "create": "Create New",
     "CalendarList": {
       "title": "Calendar Settings",

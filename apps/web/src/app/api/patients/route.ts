@@ -25,6 +25,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Optional: search by DNI — returns single patient or null
+    const { searchParams } = new URL(req.url);
+    const dni = searchParams.get('dni');
+    if (dni) {
+      const patient = await Patient.findOne({
+        userId: user._id,
+        'personalInfo.dni': dni.trim(),
+      }).lean();
+      return NextResponse.json({ patient: patient || null });
+    }
+
     const patients = await Patient.find({ userId: user._id }).sort({ createdAt: -1 });
 
     return NextResponse.json({ patients });
