@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter mi-consu-web build",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install",
+  "installCommand": "npm install -g pnpm@9.1.0 && pnpm install",
   "framework": "nextjs"
 }
