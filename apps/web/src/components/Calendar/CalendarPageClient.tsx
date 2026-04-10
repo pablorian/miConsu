@@ -586,9 +586,9 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                             </div>
                             <div className="flex items-center gap-1 text-xs shrink-0 text-muted-foreground">
                               <span>Seña</span>
-                              <span className="font-medium text-foreground">${sr.paid.toFixed(0)}</span>
+                              <span className="font-medium text-foreground">${(sr.paid ?? 0).toFixed(0)}</span>
                               <span>/</span>
-                              <span>${sr.price.toFixed(0)}</span>
+                              <span>${(sr.price ?? 0).toFixed(0)}</span>
                             </div>
                             <div className="shrink-0">
                               <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium whitespace-nowrap ${
@@ -596,7 +596,7 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                                   ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                   : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                               }`}>
-                                {isPaid ? '✓ Pagado' : `Debe $${balance!.toFixed(0)}`}
+                                {isPaid ? '✓ Pagado' : `Debe $${(balance ?? 0).toFixed(0)}`}
                               </span>
                             </div>
                             {showCompleteBtn && (
