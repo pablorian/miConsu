@@ -63,5 +63,7 @@ export * from './models/TaskBoard';
 export * from './models/Task';
 export * from './models/UserSettings';
 export * from './models/GenericTransaction';
+export * from './models/OAuthToken';
+export * from './models/OAuthAuthCode';
 
 export default connectToDatabase;

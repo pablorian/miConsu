@@ -17,7 +17,15 @@ const nextConfig: NextConfig = {
     turbopack: {
       root: path.resolve(__dirname, '../../'),
     }
-  }
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/.well-known/oauth-authorization-server',
+        destination: '/api/oauth/well-known',
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

@@ -42,9 +42,17 @@ export async function GET(request: NextRequest) {
 
     const token = await createSession(user);
 
+    const oauthPending = request.cookies.get('oauth_pending')?.value;
+
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
     url.search = '';
+
+    if (oauthPending) {
+      url.pathname = '/oauth/authorize';
+      url.search = decodeURIComponent(oauthPending);
+    } else {
+      url.pathname = '/dashboard';
+    }
 
     const response = NextResponse.redirect(url);
 
@@ -54,6 +62,10 @@ export async function GET(request: NextRequest) {
       sameSite: 'lax',
       path: '/',
     });
+
+    if (oauthPending) {
+      response.cookies.delete('oauth_pending');
+    }
 
     return response;
   } catch (error) {
