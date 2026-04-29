@@ -391,14 +391,15 @@ interface ListViewProps {
   whatsappTemplate?: string;
 }
 
-function buildWhatsAppUrl(phone: string, template: string, patientName: string, date: Date): string {
+function buildWhatsAppUrl(phone: string, template: string, patientName: string, date: Date, professional?: string): string {
   const cleanPhone = phone.replace(/\D/g, '');
   const fecha = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
   const hora = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
   const message = template
     .replace(/\{nombre\}/g, patientName)
     .replace(/\{fecha\}/g, fecha)
-    .replace(/\{hora\}/g, hora);
+    .replace(/\{hora\}/g, hora)
+    .replace(/\{profesional\}/g, professional || '');
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
 
@@ -557,7 +558,7 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                                 <span className="text-xs text-muted-foreground">{app.patientPhone}</span>
                                 {whatsappTemplate && (
                                   <a
-                                    href={buildWhatsAppUrl(app.patientPhone, whatsappTemplate, app.patientName, start)}
+                                    href={buildWhatsAppUrl(app.patientPhone, whatsappTemplate, app.patientName, start, sr?.professional)}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title="Enviar recordatorio por WhatsApp"

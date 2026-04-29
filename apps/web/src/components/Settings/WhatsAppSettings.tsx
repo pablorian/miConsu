@@ -58,7 +58,9 @@ export default function WhatsAppSettings() {
           Variables disponibles:{' '}
           <code className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-xs">{'{nombre}'}</code>{' '}
           <code className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-xs">{'{fecha}'}</code>{' '}
-          <code className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-xs">{'{hora}'}</code>
+          <code className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-xs">{'{hora}'}</code>{' '}
+          <code className="bg-gray-100 dark:bg-zinc-700 px-1 rounded text-xs">{'{profesional}'}</code>
+          <span className="block mt-1 text-muted-foreground/70">{'{profesional}'} solo aparece si el turno tiene una prestación asignada con profesional.</span>
         </p>
       </div>
 
