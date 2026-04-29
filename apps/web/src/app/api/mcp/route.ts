@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase, { Patient, User } from '@repo/database';
+import connectToDatabase, { Patient, User, PatientFile } from '@repo/database';
 import { OAuthToken } from '@repo/database';
+import { google } from 'googleapis';
+import { Readable } from 'stream';
 import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
@@ -66,6 +68,20 @@ Ejemplo: { "toothNumber": 16, "status": "present", "surfaces": { "center": "cari
       required: ['patient_id', 'odontogram'],
     },
   },
+  {
+    name: 'upload_odontogram_image',
+    description: 'Sube la imagen física del odontograma en papel como archivo al historial del paciente en Google Drive, para que quede como constancia del original. Requiere que el usuario tenga Google Drive conectado en miConsu. Llamar este tool DESPUÉS de update_patient_odontogram, pasando la misma imagen que se usó para interpretar el odontograma.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'ID del paciente' },
+        image_base64: { type: 'string', description: 'Imagen del odontograma en papel codificada en base64' },
+        mime_type: { type: 'string', description: 'Tipo MIME de la imagen: image/jpeg, image/png, image/heic, etc.', default: 'image/jpeg' },
+        filename: { type: 'string', description: 'Nombre del archivo. Si no se indica se genera automáticamente con la fecha.' },
+      },
+      required: ['patient_id', 'image_base64'],
+    },
+  },
 ];
 
 async function getUserFromToken(authHeader: string | null) {
@@ -77,11 +93,30 @@ async function getUserFromToken(authHeader: string | null) {
   const oauthToken = await OAuthToken.findOne({ tokenHash, expiresAt: { $gt: new Date() } });
   if (!oauthToken) return null;
 
-  const user = await User.findById(oauthToken.userId);
-  return user;
+  return User.findById(oauthToken.userId);
 }
 
-async function handleToolCall(toolName: string, args: any, userId: any) {
+async function getOrCreateDriveFolder(drive: any, name: string, parentId?: string): Promise<string> {
+  const escapedName = name.replace(/'/g, "\\'");
+  const q = `mimeType='application/vnd.google-apps.folder' and name='${escapedName}' and trashed=false${parentId ? ` and '${parentId}' in parents` : ''}`;
+
+  const res = await drive.files.list({ q, fields: 'files(id)', spaces: 'drive' });
+  if (res.data.files?.length > 0) return res.data.files[0].id;
+
+  const folder = await drive.files.create({
+    requestBody: {
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+      ...(parentId ? { parents: [parentId] } : {}),
+    },
+    fields: 'id',
+  });
+  return folder.data.id;
+}
+
+async function handleToolCall(toolName: string, args: any, user: any) {
+  const userId = user._id;
+
   if (toolName === 'search_patients') {
     const { query } = args;
     const patients = await Patient.find({
@@ -125,6 +160,73 @@ async function handleToolCall(toolName: string, args: any, userId: any) {
       content: [{
         type: 'text',
         text: `Odontograma actualizado correctamente para ${patient.name}${patient.lastName ? ' ' + patient.lastName : ''}. Se cargaron ${odontogram.length} diente(s).`,
+      }],
+    };
+  }
+
+  if (toolName === 'upload_odontogram_image') {
+    const { patient_id, image_base64, mime_type = 'image/jpeg', filename } = args;
+
+    if (!user.googleCalendarAccessToken) {
+      return {
+        content: [{
+          type: 'text',
+          text: 'Error: Google Drive no está conectado en miConsu. El usuario debe conectar su cuenta de Google desde la sección de Calendario en la aplicación.',
+        }],
+      };
+    }
+
+    const patient = await Patient.findOne({ _id: patient_id, userId }).select('name lastName').lean() as any;
+    if (!patient) return { content: [{ type: 'text', text: 'Paciente no encontrado.' }] };
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET
+    );
+    oauth2Client.setCredentials({
+      access_token: user.googleCalendarAccessToken,
+      refresh_token: user.googleCalendarRefreshToken,
+    });
+
+    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+
+    const appFolderId = await getOrCreateDriveFolder(drive, 'MiConsu');
+    const patientFolderName = `${patient.name}${patient.lastName ? ' ' + patient.lastName : ''}`;
+    const patientFolderId = await getOrCreateDriveFolder(drive, patientFolderName, appFolderId);
+
+    const buffer = Buffer.from(image_base64, 'base64');
+    const stream = Readable.from(buffer);
+
+    const extension = mime_type.split('/')[1]?.replace('jpeg', 'jpg') || 'jpg';
+    const date = new Date().toISOString().split('T')[0];
+    const finalFilename = filename || `odontograma-${date}.${extension}`;
+
+    const driveResponse = await drive.files.create({
+      requestBody: {
+        name: finalFilename,
+        mimeType: mime_type,
+        parents: [patientFolderId],
+      },
+      media: { mimeType: mime_type, body: stream },
+      fields: 'id, name, webViewLink, iconLink, mimeType',
+    });
+
+    const uploaded = driveResponse.data;
+
+    await PatientFile.create({
+      patientId: patient_id,
+      userId,
+      fileId: uploaded.id,
+      name: uploaded.name,
+      mimeType: uploaded.mimeType,
+      webViewLink: uploaded.webViewLink,
+      iconLink: uploaded.iconLink,
+    });
+
+    return {
+      content: [{
+        type: 'text',
+        text: `Imagen del odontograma guardada correctamente en el historial de ${patientFolderName}.\nArchivo: ${uploaded.name}\nVer en Drive: ${uploaded.webViewLink}`,
       }],
     };
   }
@@ -178,10 +280,19 @@ export async function POST(req: NextRequest) {
   if (method === 'tools/call') {
     const { name, arguments: toolArgs } = params || {};
     try {
-      const result = await handleToolCall(name, toolArgs || {}, user._id);
+      const result = await handleToolCall(name, toolArgs || {}, user);
       return NextResponse.json({ jsonrpc: '2.0', result, id });
-    } catch (error) {
+    } catch (error: any) {
       console.error('MCP tool error:', error);
+      if (error?.code === 401 || error?.response?.status === 401) {
+        return NextResponse.json({
+          jsonrpc: '2.0',
+          result: {
+            content: [{ type: 'text', text: 'Error: La sesión de Google expiró. El usuario debe reconectar Google desde miConsu.' }],
+          },
+          id,
+        });
+      }
       return NextResponse.json({
         jsonrpc: '2.0',
         error: { code: -32603, message: 'Internal error' },
