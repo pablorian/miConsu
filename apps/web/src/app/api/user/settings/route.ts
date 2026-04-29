@@ -20,8 +20,11 @@ export async function GET(request: NextRequest) {
 
   const settings = await UserSettings.findOne({ userId: user._id }).lean() as any;
 
+  const defaultTemplate = 'Hola {nombre}, te recordamos tu turno el {fecha} a las {hora} hs. ¡Te esperamos! 🗓️';
+
   return NextResponse.json({
     autoGenerateFichasObrasSociales: settings?.autoGenerateFichasObrasSociales ?? false,
+    whatsappReminderTemplate: settings?.whatsappReminderTemplate ?? defaultTemplate,
   });
 }
 
@@ -30,13 +33,14 @@ export async function PUT(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json();
-  const { autoGenerateFichasObrasSociales } = body;
+  const { autoGenerateFichasObrasSociales, whatsappReminderTemplate } = body;
 
   const updated = await UserSettings.findOneAndUpdate(
     { userId: user._id },
     {
       $set: {
         ...(typeof autoGenerateFichasObrasSociales === 'boolean' && { autoGenerateFichasObrasSociales }),
+        ...(typeof whatsappReminderTemplate === 'string' && { whatsappReminderTemplate }),
       },
     },
     { upsert: true, new: true }
@@ -44,5 +48,6 @@ export async function PUT(request: NextRequest) {
 
   return NextResponse.json({
     autoGenerateFichasObrasSociales: updated.autoGenerateFichasObrasSociales,
+    whatsappReminderTemplate: updated.whatsappReminderTemplate,
   });
 }
