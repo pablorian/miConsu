@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { format, isBefore, isToday, isTomorrow, isYesterday, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
@@ -383,6 +383,176 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
   );
 }
 
+// ─── Appointment Actions Menu (3-dot) ────────────────────────────────────────
+
+interface AppointmentActionsMenuProps {
+  app: Appointment;
+  onDelete: (id: string) => void;
+  deleting: boolean;
+  hasSr: boolean;
+  onAddPrestacion: () => void;
+}
+
+function AppointmentActionsMenu({ app, onDelete, deleting, hasSr, onAddPrestacion }: AppointmentActionsMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) { setConfirmDelete(false); setShowTooltip(false); setMenuPos(null); }
+  }, [open]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    function handleScroll() { setOpen(false); }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('scroll', handleScroll, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [open]);
+
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + window.scrollY + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(v => !v);
+  };
+
+  const handleDeleteClick = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+    } else {
+      onDelete(app._id);
+      setOpen(false);
+    }
+  };
+
+  const menu = open && menuPos ? (
+    <div
+      ref={menuRef}
+      style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+      className="min-w-[190px] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl overflow-hidden"
+    >
+      {/* Nueva prestación */}
+      {!hasSr && (
+        <>
+          <button
+            onClick={() => { onAddPrestacion(); setOpen(false); }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Asignar prestación
+          </button>
+          <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2" />
+        </>
+      )}
+
+      {/* Ver paciente */}
+      {app.patientId ? (
+        <Link
+          href={`/dashboard/patients/${app.patientId}`}
+          onClick={() => setOpen(false)}
+          className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          Ver paciente
+        </Link>
+      ) : (
+        <div className="relative">
+          <Link
+            href="/dashboard/patients?tab=solicitudes"
+            onClick={() => setOpen(false)}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-muted-foreground hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            <span>Ver paciente</span>
+            <svg className="w-3.5 h-3.5 ml-auto shrink-0 text-amber-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </Link>
+          {showTooltip && (
+            <div
+              style={{ position: 'fixed', top: (menuPos?.top ?? 0) + 4, right: (menuPos?.right ?? 0) + 198, zIndex: 10000 }}
+              className="w-56 bg-zinc-800 dark:bg-zinc-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none"
+            >
+              Este paciente no está dado de alta. Podés encontrarlo en Solicitudes.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2" />
+
+      {/* Eliminar */}
+      <button
+        onClick={handleDeleteClick}
+        disabled={deleting}
+        className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors disabled:opacity-50 ${
+          confirmDelete
+            ? 'text-white bg-red-500 hover:bg-red-600'
+            : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+        }`}
+      >
+        {deleting ? (
+          <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+          </svg>
+        ) : (
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>
+        )}
+        {deleting ? 'Eliminando…' : confirmDelete ? '¿Confirmar eliminación?' : 'Eliminar turno'}
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+        title="Más opciones"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <circle cx="5" cy="12" r="1.5" />
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="19" cy="12" r="1.5" />
+        </svg>
+      </button>
+      {menu}
+    </div>
+  );
+}
+
 // ─── List View ────────────────────────────────────────────────────────────────
 
 interface ListViewProps {
@@ -459,6 +629,18 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
 
   const [completing, setCompleting] = useState<string | null>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = useCallback(async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setApps(prev => prev.filter(a => a._id !== id));
+      }
+    } catch (e) { console.error(e); }
+    finally { setDeletingId(null); }
+  }, []);
 
   const handleComplete = useCallback(async (app: Appointment) => {
     setCompleting(app._id);
@@ -579,22 +761,13 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                             <StatusSelect appId={app._id} status={app.status} onUpdate={handleUpdate} />
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {!sr && (
-                              <button
-                                onClick={() => setModalApp(app)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-primary bg-primary/8 hover:bg-primary/15 border border-primary/20 rounded-lg transition-colors whitespace-nowrap"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Prestación
-                              </button>
-                            )}
-                            {app.patientId && (
-                              <Link href={`/dashboard/patients/${app.patientId}`} className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">
-                                Ver paciente →
-                              </Link>
-                            )}
+                            <AppointmentActionsMenu
+                              app={app}
+                              onDelete={handleDelete}
+                              deleting={deletingId === app._id}
+                              hasSr={!!sr}
+                              onAddPrestacion={() => setModalApp(app)}
+                            />
                           </div>
                         </div>
 

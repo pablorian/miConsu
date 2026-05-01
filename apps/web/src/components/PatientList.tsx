@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { formatDistanceToNow, format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -303,7 +303,9 @@ function SolicitudTableHeaders({ showActions = true }: { showActions?: boolean }
 
 export default function PatientList({ patients }: PatientListProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabId>('activos');
+  const searchParams = useSearchParams();
+  const initialTab = (searchParams.get('tab') as TabId) || 'activos';
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
   const [search, setSearch] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
