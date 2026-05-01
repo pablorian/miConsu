@@ -7,6 +7,16 @@ import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 const PATHOLOGY_FIELDS = [
   'arrhythmia','ischemicHeartDisease','bacterialEndocarditis','hypertension','hypotension','heartFailure','pacemaker','valvulopathies','heartProblems',
   'asthma','bronchitis','dyspnea',
@@ -382,27 +392,31 @@ async function handleToolCall(toolName: string, args: any, user: any) {
   return { content: [{ type: 'text', text: 'Tool desconocida.' }] };
 }
 
+function jsonRpc(data: any, status = 200) {
+  return NextResponse.json(data, { status, headers: CORS_HEADERS });
+}
+
 export async function POST(req: NextRequest) {
   const user = await getUserFromToken(req.headers.get('authorization'));
   if (!user) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401, headers: CORS_HEADERS });
   }
 
   let body: any;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ jsonrpc: '2.0', error: { code: -32700, message: 'Parse error' }, id: null });
+    return jsonRpc({ jsonrpc: '2.0', error: { code: -32700, message: 'Parse error' }, id: null });
   }
 
   const { jsonrpc, method, params, id } = body;
 
   if (jsonrpc !== '2.0') {
-    return NextResponse.json({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid Request' }, id: id ?? null });
+    return jsonRpc({ jsonrpc: '2.0', error: { code: -32600, message: 'Invalid Request' }, id: id ?? null });
   }
 
   if (method === 'initialize') {
-    return NextResponse.json({
+    return jsonRpc({
       jsonrpc: '2.0',
       result: {
         protocolVersion: '2024-11-05',
@@ -414,26 +428,22 @@ export async function POST(req: NextRequest) {
   }
 
   if (method === 'notifications/initialized') {
-    return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
   }
 
   if (method === 'tools/list') {
-    return NextResponse.json({
-      jsonrpc: '2.0',
-      result: { tools: TOOLS },
-      id,
-    });
+    return jsonRpc({ jsonrpc: '2.0', result: { tools: TOOLS }, id });
   }
 
   if (method === 'tools/call') {
     const { name, arguments: toolArgs } = params || {};
     try {
       const result = await handleToolCall(name, toolArgs || {}, user);
-      return NextResponse.json({ jsonrpc: '2.0', result, id });
+      return jsonRpc({ jsonrpc: '2.0', result, id });
     } catch (error: any) {
       console.error('MCP tool error:', error);
       if (error?.code === 401 || error?.response?.status === 401) {
-        return NextResponse.json({
+        return jsonRpc({
           jsonrpc: '2.0',
           result: {
             content: [{ type: 'text', text: 'Error: La sesión de Google expiró. El usuario debe reconectar Google desde miConsu.' }],
@@ -441,21 +451,13 @@ export async function POST(req: NextRequest) {
           id,
         });
       }
-      return NextResponse.json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal error' },
-        id,
-      });
+      return jsonRpc({ jsonrpc: '2.0', error: { code: -32603, message: 'Internal error' }, id });
     }
   }
 
-  return NextResponse.json({
-    jsonrpc: '2.0',
-    error: { code: -32601, message: 'Method not found' },
-    id: id ?? null,
-  });
+  return jsonRpc({ jsonrpc: '2.0', error: { code: -32601, message: 'Method not found' }, id: id ?? null });
 }
 
 export async function GET() {
-  return NextResponse.json({ error: 'Use POST for MCP protocol' }, { status: 405 });
+  return NextResponse.json({ error: 'Use POST for MCP protocol' }, { status: 405, headers: CORS_HEADERS });
 }
