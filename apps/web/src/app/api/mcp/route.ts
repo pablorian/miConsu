@@ -396,20 +396,22 @@ function jsonRpc(data: any, status = 200) {
   return NextResponse.json(data, { status, headers: CORS_HEADERS });
 }
 
+function unauthorizedResponse(req: NextRequest) {
+  const host = req.headers.get('host') || '';
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
+  return NextResponse.json({ error: 'unauthorized' }, {
+    status: 401,
+    headers: {
+      ...CORS_HEADERS,
+      'WWW-Authenticate': `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
   const user = await getUserFromToken(req.headers.get('authorization'));
-  if (!user) {
-    const host = req.headers.get('host') || '';
-    const proto = req.headers.get('x-forwarded-proto') || 'https';
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
-    return NextResponse.json({ error: 'unauthorized' }, {
-      status: 401,
-      headers: {
-        ...CORS_HEADERS,
-        'WWW-Authenticate': `Bearer realm="miConsu", resource_metadata_url="${baseUrl}/.well-known/oauth-authorization-server"`,
-      },
-    });
-  }
+  if (!user) return unauthorizedResponse(req);
 
   let body: any;
   try {
@@ -468,14 +470,5 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const host = req.headers.get('host') || '';
-  const proto = req.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
-  return NextResponse.json({ error: 'unauthorized' }, {
-    status: 401,
-    headers: {
-      ...CORS_HEADERS,
-      'WWW-Authenticate': `Bearer realm="miConsu", resource_metadata_url="${baseUrl}/.well-known/oauth-authorization-server"`,
-    },
-  });
+  return unauthorizedResponse(req);
 }
