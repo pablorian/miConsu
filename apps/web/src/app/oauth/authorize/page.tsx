@@ -29,9 +29,13 @@ function AuthorizeContent() {
       });
 
       if (res.status === 401) {
-        document.cookie = `oauth_pending=${encodeURIComponent(window.location.search)}; path=/; max-age=600`;
+        const isHttps = window.location.protocol === 'https:';
+        const secureAttr = isHttps ? '; Secure' : '';
+        document.cookie = `oauth_pending=${encodeURIComponent(window.location.search)}; path=/; max-age=600; SameSite=Lax${secureAttr}`;
         const locale = document.cookie.match(/NEXT_LOCALE=([^;]+)/)?.[1] || 'es';
-        router.push(`/${locale}/login`);
+        // Hard navigation so the cookie is reliably committed and the login page
+        // gets a fresh server render with the right host headers.
+        window.location.href = `/${locale}/login`;
         return;
       }
 

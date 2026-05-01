@@ -177,6 +177,11 @@ async function getUserFromToken(authHeader: string | null) {
   const oauthToken = await OAuthToken.findOne({ tokenHash, expiresAt: { $gt: new Date() } });
   if (!oauthToken) return null;
 
+  // Fire-and-forget: track when this connection was last active without
+  // delaying the request.
+  OAuthToken.updateOne({ _id: oauthToken._id }, { $set: { lastUsedAt: new Date() } })
+    .catch(err => console.error('[mcp] failed to update lastUsedAt:', err));
+
   return User.findById(oauthToken.userId);
 }
 
@@ -397,14 +402,17 @@ function jsonRpc(data: any, status = 200) {
 }
 
 function unauthorizedResponse(req: NextRequest) {
-  const host = req.headers.get('host') || '';
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
   const proto = req.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_GOOGLE_WEBHOOK_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    `${proto}://${host}`;
   return NextResponse.json({ error: 'unauthorized' }, {
     status: 401,
     headers: {
       ...CORS_HEADERS,
-      'WWW-Authenticate': `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource"`,
+      'WWW-Authenticate': `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource/api/mcp"`,
     },
   });
 }

@@ -8,6 +8,7 @@ import PublicHandleEditor from '@/components/Settings/PublicHandleEditor';
 import PrestacionesEditor from '@/components/Settings/PrestacionesEditor';
 import AutoFlowsSettings from '@/components/Settings/AutoFlowsSettings';
 import WhatsAppSettings from '@/components/Settings/WhatsAppSettings';
+import MCPConnections from '@/components/Settings/MCPConnections';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 
@@ -169,6 +170,24 @@ export default async function SettingsPage({
           </div>
         </div>
         <GoogleCalendarIntegration isConnected={!!user.googleCalendarRefreshToken} />
+      </div>
+
+      {/* Aplicaciones conectadas (MCP) */}
+      <div className="border rounded-xl p-6 bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-800">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Aplicaciones conectadas</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Apps externas (como Claude) que tienen acceso a tu cuenta vía MCP. Podés revocar el acceso en cualquier momento.
+            </p>
+          </div>
+        </div>
+        <MCPConnections />
       </div>
     </div>
   );

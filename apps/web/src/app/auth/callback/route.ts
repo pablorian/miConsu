@@ -44,17 +44,24 @@ export async function GET(request: NextRequest) {
 
     const oauthPending = request.cookies.get('oauth_pending')?.value;
 
-    const url = request.nextUrl.clone();
-    url.search = '';
+    // Build the redirect URL using the public host (devtunnel/prod) instead
+    // of `request.nextUrl`, which falls back to the upstream `host` header
+    // (`localhost:3000`) when behind a tunnel/proxy. Otherwise the user gets
+    // bounced to localhost and loses the cookies set on the public domain.
+    const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host') || '';
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    const baseUrl =
+      process.env.NEXT_PUBLIC_GOOGLE_WEBHOOK_URL ||
+      (forwardedHost ? `${forwardedProto}://${forwardedHost}` : request.nextUrl.origin);
 
+    let target: string;
     if (oauthPending) {
-      url.pathname = '/oauth/authorize';
-      url.search = decodeURIComponent(oauthPending);
+      target = `${baseUrl}/oauth/authorize${decodeURIComponent(oauthPending)}`;
     } else {
-      url.pathname = '/dashboard';
+      target = `${baseUrl}/dashboard`;
     }
 
-    const response = NextResponse.redirect(url);
+    const response = NextResponse.redirect(target);
 
     response.cookies.set('token', token, {
       httpOnly: true,

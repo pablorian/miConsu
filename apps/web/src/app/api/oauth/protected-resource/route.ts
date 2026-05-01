@@ -13,9 +13,12 @@ export async function OPTIONS() {
 }
 
 export async function GET(req: NextRequest) {
-  const host = req.headers.get('host') || '';
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || '';
   const proto = req.headers.get('x-forwarded-proto') || 'https';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
+  const baseUrl =
+    process.env.NEXT_PUBLIC_GOOGLE_WEBHOOK_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    `${proto}://${host}`;
 
   return NextResponse.json({
     resource: `${baseUrl}/api/mcp`,

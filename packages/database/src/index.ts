@@ -65,5 +65,6 @@ export * from './models/UserSettings';
 export * from './models/GenericTransaction';
 export * from './models/OAuthToken';
 export * from './models/OAuthAuthCode';
+export * from './models/OAuthClient';
 
 export default connectToDatabase;

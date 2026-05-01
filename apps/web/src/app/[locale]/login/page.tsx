@@ -1,17 +1,30 @@
 import { workos, clientId } from '@/lib/workos';
 import { env } from '@/env';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
 export const dynamic = 'force-dynamic';
 
-export default function LoginPage() {
-  const t = useTranslations('Login');
+export default async function LoginPage() {
+  const t = await getTranslations('Login');
+
+  // Build redirect URI dynamically so the OAuth callback comes back to the
+  // same host the user is on (devtunnel, production, etc.) instead of always
+  // landing on localhost. WorkOS still validates this against the whitelist.
+  const h = await headers();
+  const forwardedHost = h.get('x-forwarded-host') || h.get('host') || '';
+  const forwardedProto = h.get('x-forwarded-proto') || 'https';
+  const baseUrl =
+    process.env.NEXT_PUBLIC_GOOGLE_WEBHOOK_URL ||
+    (forwardedHost ? `${forwardedProto}://${forwardedHost}` : '');
+  const redirectUri = baseUrl ? `${baseUrl}/auth/callback` : env.WORKOS_REDIRECT_URI;
+
   const authorizationUrl = workos.userManagement.getAuthorizationUrl({
     provider: 'GoogleOAuth',
     clientId: clientId,
-    redirectUri: env.WORKOS_REDIRECT_URI,
+    redirectUri,
   });
 
   return (

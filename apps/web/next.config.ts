@@ -29,6 +29,12 @@ const nextConfig: NextConfig = {
         source: '/.well-known/oauth-protected-resource',
         destination: '/api/oauth/protected-resource',
       },
+      // Per RFC 9728: clients query `/.well-known/oauth-protected-resource{path}`
+      // where {path} is the protected-resource path (e.g. `/api/mcp`).
+      {
+        source: '/.well-known/oauth-protected-resource/:path*',
+        destination: '/api/oauth/protected-resource',
+      },
     ];
   },
 };

@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
     await OAuthToken.create({
       userId: authCode.userId,
       tokenHash,
+      clientId: authCode.clientId,
       expiresAt,
     });
 
