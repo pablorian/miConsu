@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { format, isBefore, isToday, isTomorrow, isYesterday, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
@@ -383,14 +383,197 @@ function CreatePrestacionModal({ appointment, onClose, onSaved }: CreatePrestaci
   );
 }
 
+// ─── Appointment Actions Menu (3-dot) ────────────────────────────────────────
+
+interface AppointmentActionsMenuProps {
+  app: Appointment;
+  onDelete: (id: string) => void;
+  deleting: boolean;
+  hasSr: boolean;
+  onAddPrestacion: () => void;
+}
+
+function AppointmentActionsMenu({ app, onDelete, deleting, hasSr, onAddPrestacion }: AppointmentActionsMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) { setConfirmDelete(false); setShowTooltip(false); setMenuPos(null); }
+  }, [open]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        btnRef.current && !btnRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    function handleScroll() { setOpen(false); }
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('scroll', handleScroll, true);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [open]);
+
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setMenuPos({
+        top: rect.bottom + window.scrollY + 4,
+        right: window.innerWidth - rect.right,
+      });
+    }
+    setOpen(v => !v);
+  };
+
+  const handleDeleteClick = () => {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+    } else {
+      onDelete(app._id);
+      setOpen(false);
+    }
+  };
+
+  const menu = open && menuPos ? (
+    <div
+      ref={menuRef}
+      style={{ position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 9999 }}
+      className="min-w-[190px] bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl overflow-hidden"
+    >
+      {/* Nueva prestación */}
+      {!hasSr && (
+        <>
+          <button
+            onClick={() => { onAddPrestacion(); setOpen(false); }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Asignar prestación
+          </button>
+          <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2" />
+        </>
+      )}
+
+      {/* Ver paciente */}
+      {app.patientId ? (
+        <Link
+          href={`/dashboard/patients/${app.patientId}`}
+          onClick={() => setOpen(false)}
+          className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <svg className="w-4 h-4 text-muted-foreground shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          Ver paciente
+        </Link>
+      ) : (
+        <div className="relative">
+          <Link
+            href="/dashboard/patients?tab=solicitudes"
+            onClick={() => setOpen(false)}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            className="flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-muted-foreground hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            <span>Ver paciente</span>
+            <svg className="w-3.5 h-3.5 ml-auto shrink-0 text-amber-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+          </Link>
+          {showTooltip && (
+            <div
+              style={{ position: 'fixed', top: (menuPos?.top ?? 0) + 4, right: (menuPos?.right ?? 0) + 198, zIndex: 10000 }}
+              className="w-56 bg-zinc-800 dark:bg-zinc-700 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none"
+            >
+              Este paciente no está dado de alta. Podés encontrarlo en Solicitudes.
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2" />
+
+      {/* Eliminar */}
+      <button
+        onClick={handleDeleteClick}
+        disabled={deleting}
+        className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm transition-colors disabled:opacity-50 ${
+          confirmDelete
+            ? 'text-white bg-red-500 hover:bg-red-600'
+            : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+        }`}
+      >
+        {deleting ? (
+          <svg className="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+          </svg>
+        ) : (
+          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+          </svg>
+        )}
+        {deleting ? 'Eliminando…' : confirmDelete ? '¿Confirmar eliminación?' : 'Eliminar turno'}
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <div className="relative shrink-0">
+      <button
+        ref={btnRef}
+        onClick={handleToggle}
+        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+        title="Más opciones"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <circle cx="5" cy="12" r="1.5" />
+          <circle cx="12" cy="12" r="1.5" />
+          <circle cx="19" cy="12" r="1.5" />
+        </svg>
+      </button>
+      {menu}
+    </div>
+  );
+}
+
 // ─── List View ────────────────────────────────────────────────────────────────
 
 interface ListViewProps {
   appointments: Appointment[];
   serviceRecordsByAppointment: Record<string, ServiceRecordSummary>;
+  whatsappTemplate?: string;
 }
 
-function ListView({ appointments: initialApps, serviceRecordsByAppointment: initialSRMap }: ListViewProps) {
+function buildWhatsAppUrl(phone: string, template: string, patientName: string, date: Date, professional?: string): string {
+  const cleanPhone = phone.replace(/\D/g, '');
+  const fecha = date.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const hora = date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+  const message = template
+    .replace(/\{nombre\}/g, patientName)
+    .replace(/\{fecha\}/g, fecha)
+    .replace(/\{hora\}/g, hora)
+    .replace(/\{profesional\}/g, professional || '');
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}
+
+function ListView({ appointments: initialApps, serviceRecordsByAppointment: initialSRMap, whatsappTemplate }: ListViewProps) {
   const [apps, setApps] = useState(initialApps);
   const [srMap, setSrMap] = useState<Record<string, ServiceRecordSummary>>(initialSRMap);
 
@@ -446,6 +629,18 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
 
   const [completing, setCompleting] = useState<string | null>(null);
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = useCallback(async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/appointments/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setApps(prev => prev.filter(a => a._id !== id));
+      }
+    } catch (e) { console.error(e); }
+    finally { setDeletingId(null); }
+  }, []);
 
   const handleComplete = useCallback(async (app: Appointment) => {
     setCompleting(app._id);
@@ -541,7 +736,22 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{app.patientName}</p>
                             {app.patientPhone && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{app.patientPhone}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-xs text-muted-foreground">{app.patientPhone}</span>
+                                {whatsappTemplate && (
+                                  <a
+                                    href={buildWhatsAppUrl(app.patientPhone, whatsappTemplate, app.patientName, start, sr?.professional)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Enviar recordatorio por WhatsApp"
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors flex-shrink-0"
+                                  >
+                                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                    </svg>
+                                  </a>
+                                )}
+                              </div>
                             )}
                           </div>
                           <div className="hidden sm:block flex-1 min-w-0">
@@ -551,22 +761,13 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
                             <StatusSelect appId={app._id} status={app.status} onUpdate={handleUpdate} />
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            {!sr && (
-                              <button
-                                onClick={() => setModalApp(app)}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-primary bg-primary/8 hover:bg-primary/15 border border-primary/20 rounded-lg transition-colors whitespace-nowrap"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Prestación
-                              </button>
-                            )}
-                            {app.patientId && (
-                              <Link href={`/dashboard/patients/${app.patientId}`} className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">
-                                Ver paciente →
-                              </Link>
-                            )}
+                            <AppointmentActionsMenu
+                              app={app}
+                              onDelete={handleDelete}
+                              deleting={deletingId === app._id}
+                              hasSr={!!sr}
+                              onAddPrestacion={() => setModalApp(app)}
+                            />
                           </div>
                         </div>
 
@@ -647,9 +848,10 @@ function ListView({ appointments: initialApps, serviceRecordsByAppointment: init
 interface CalendarPageClientProps {
   appointments: Appointment[];
   serviceRecordsByAppointment: Record<string, ServiceRecordSummary>;
+  whatsappTemplate?: string;
 }
 
-export default function CalendarPageClient({ appointments, serviceRecordsByAppointment }: CalendarPageClientProps) {
+export default function CalendarPageClient({ appointments, serviceRecordsByAppointment, whatsappTemplate }: CalendarPageClientProps) {
   const [showWizard, setShowWizard] = useState(false);
   const [allAppointments, setAllAppointments] = useState(appointments);
 
@@ -679,7 +881,7 @@ export default function CalendarPageClient({ appointments, serviceRecordsByAppoi
         </button>
       </div>
 
-      <ListView appointments={allAppointments} serviceRecordsByAppointment={serviceRecordsByAppointment} />
+      <ListView appointments={allAppointments} serviceRecordsByAppointment={serviceRecordsByAppointment} whatsappTemplate={whatsappTemplate} />
     </div>
   );
 }

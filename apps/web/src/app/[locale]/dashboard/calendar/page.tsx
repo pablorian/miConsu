@@ -1,7 +1,9 @@
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/session';
-import connectToDatabase, { User, Appointment, ServiceRecord } from '@repo/database';
+import connectToDatabase, { User, Appointment, ServiceRecord, UserSettings } from '@repo/database';
 import CalendarPageClient from '@/components/Calendar/CalendarPageClient';
+
+const DEFAULT_WHATSAPP_TEMPLATE = 'Hola {nombre}, te recordamos tu turno el {fecha} a las {hora} hs. ¡Te esperamos! 🗓️';
 
 export default async function CalendarPage() {
   const cookieStore = await cookies();
@@ -10,6 +12,7 @@ export default async function CalendarPage() {
   let isConnected = false;
   let appointments: any[] = [];
   let serviceRecordsByAppointment: Record<string, any> = {};
+  let whatsappTemplate = DEFAULT_WHATSAPP_TEMPLATE;
 
   if (token) {
     const session: any = await verifySession(token);
@@ -19,6 +22,10 @@ export default async function CalendarPage() {
       if (user) {
         if (user.googleCalendarAccessToken) {
           isConnected = true;
+        }
+        const settings = await UserSettings.findOne({ userId: user._id }).lean() as any;
+        if (settings?.whatsappReminderTemplate) {
+          whatsappTemplate = settings.whatsappReminderTemplate;
         }
         const rawAppointments = await Appointment.find({ userId: user._id }).lean();
 
@@ -62,6 +69,7 @@ export default async function CalendarPage() {
       <CalendarPageClient
         appointments={appointments}
         serviceRecordsByAppointment={serviceRecordsByAppointment}
+        whatsappTemplate={whatsappTemplate}
       />
     </div>
   );
