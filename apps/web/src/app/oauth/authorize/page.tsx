@@ -29,9 +29,9 @@ function AuthorizeContent() {
       });
 
       if (res.status === 401) {
-        const currentUrl = window.location.href;
         document.cookie = `oauth_pending=${encodeURIComponent(window.location.search)}; path=/; max-age=600`;
-        router.push('/es/login');
+        const locale = document.cookie.match(/NEXT_LOCALE=([^;]+)/)?.[1] || 'es';
+        router.push(`/${locale}/login`);
         return;
       }
 
@@ -93,25 +93,25 @@ function AuthorizeContent() {
             Claude quiere acceder a miConsu
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm text-center mt-2">
-            Esto permitirá a Claude leer y actualizar odontogramas de tus pacientes.
+            Esto permitirá a Claude gestionar fichas de pacientes y odontogramas en tu cuenta.
           </p>
         </div>
 
         {/* Permissions */}
         <div className="bg-gray-50 dark:bg-zinc-700 rounded-xl p-4 mb-6 space-y-3">
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Claude podrá:</p>
-          <div className="flex items-start gap-3">
-            <span className="text-blue-500 mt-0.5">✓</span>
-            <span className="text-sm text-gray-700 dark:text-gray-300">Buscar pacientes por nombre</span>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-blue-500 mt-0.5">✓</span>
-            <span className="text-sm text-gray-700 dark:text-gray-300">Ver el odontograma actual de un paciente</span>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-blue-500 mt-0.5">✓</span>
-            <span className="text-sm text-gray-700 dark:text-gray-300">Actualizar el odontograma de un paciente</span>
-          </div>
+          {[
+            'Buscar pacientes por nombre',
+            'Crear pacientes nuevos con su ficha médica completa',
+            'Actualizar datos, obra social y antecedentes de pacientes',
+            'Ver y actualizar el odontograma de un paciente',
+            'Subir imágenes al historial del paciente en Google Drive',
+          ].map(perm => (
+            <div key={perm} className="flex items-start gap-3">
+              <span className="text-blue-500 mt-0.5">✓</span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">{perm}</span>
+            </div>
+          ))}
         </div>
 
         {error && (

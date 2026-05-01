@@ -5,6 +5,16 @@ import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
 function verifyPKCE(codeVerifier: string, codeChallenge: string, method: string): boolean {
   if (method === 'S256') {
     const hash = crypto.createHash('sha256').update(codeVerifier).digest();
@@ -31,33 +41,20 @@ export async function POST(req: NextRequest) {
 
     const { grant_type, code, redirect_uri, client_id, code_verifier } = body;
 
-    if (grant_type !== 'authorization_code') {
-      return NextResponse.json({ error: 'unsupported_grant_type' }, { status: 400 });
-    }
+    const err = (msg: string, desc?: string, status = 400) =>
+      NextResponse.json({ error: msg, ...(desc ? { error_description: desc } : {}) }, { status, headers: CORS_HEADERS });
 
-    if (!code || !redirect_uri || !client_id || !code_verifier) {
-      return NextResponse.json({ error: 'invalid_request', error_description: 'Missing required parameters' }, { status: 400 });
-    }
+    if (grant_type !== 'authorization_code') return err('unsupported_grant_type');
+    if (!code || !redirect_uri || !client_id || !code_verifier) return err('invalid_request', 'Missing required parameters');
 
     await connectToDatabase();
 
     const authCode = await OAuthAuthCode.findOne({ code, used: false });
 
-    if (!authCode) {
-      return NextResponse.json({ error: 'invalid_grant', error_description: 'Invalid or expired code' }, { status: 400 });
-    }
-
-    if (authCode.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'invalid_grant', error_description: 'Code expired' }, { status: 400 });
-    }
-
-    if (authCode.redirectUri !== redirect_uri) {
-      return NextResponse.json({ error: 'invalid_grant', error_description: 'redirect_uri mismatch' }, { status: 400 });
-    }
-
-    if (!verifyPKCE(code_verifier, authCode.codeChallenge, authCode.codeChallengeMethod)) {
-      return NextResponse.json({ error: 'invalid_grant', error_description: 'PKCE verification failed' }, { status: 400 });
-    }
+    if (!authCode) return err('invalid_grant', 'Invalid or expired code');
+    if (authCode.expiresAt < new Date()) return err('invalid_grant', 'Code expired');
+    if (authCode.redirectUri !== redirect_uri) return err('invalid_grant', 'redirect_uri mismatch');
+    if (!verifyPKCE(code_verifier, authCode.codeChallenge, authCode.codeChallengeMethod)) return err('invalid_grant', 'PKCE verification failed');
 
     authCode.used = true;
     await authCode.save();
@@ -76,9 +73,9 @@ export async function POST(req: NextRequest) {
       access_token: token,
       token_type: 'Bearer',
       expires_in: 30 * 24 * 60 * 60,
-    });
+    }, { headers: CORS_HEADERS });
   } catch (error) {
     console.error('OAuth token error:', error);
-    return NextResponse.json({ error: 'server_error' }, { status: 500 });
+    return NextResponse.json({ error: 'server_error' }, { status: 500, headers: CORS_HEADERS });
   }
 }
