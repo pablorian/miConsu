@@ -467,6 +467,15 @@ export async function POST(req: NextRequest) {
   return jsonRpc({ jsonrpc: '2.0', error: { code: -32601, message: 'Method not found' }, id: id ?? null });
 }
 
-export async function GET() {
-  return NextResponse.json({ error: 'Use POST for MCP protocol' }, { status: 405, headers: CORS_HEADERS });
+export async function GET(req: NextRequest) {
+  const host = req.headers.get('host') || '';
+  const proto = req.headers.get('x-forwarded-proto') || 'https';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${proto}://${host}`;
+  return NextResponse.json({ error: 'unauthorized' }, {
+    status: 401,
+    headers: {
+      ...CORS_HEADERS,
+      'WWW-Authenticate': `Bearer realm="miConsu", resource_metadata_url="${baseUrl}/.well-known/oauth-authorization-server"`,
+    },
+  });
 }
