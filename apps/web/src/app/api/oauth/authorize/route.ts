@@ -7,6 +7,17 @@ import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
+const ALLOWED_REDIRECT_HOSTS = ['claude.ai', 'anthropic.com'];
+
+function isValidRedirectUri(uri: string): boolean {
+  try {
+    const { hostname } = new URL(uri);
+    return ALLOWED_REDIRECT_HOSTS.some(h => hostname === h || hostname.endsWith('.' + h));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -14,6 +25,10 @@ export async function POST(req: NextRequest) {
 
     if (!client_id || !redirect_uri || !code_challenge) {
       return NextResponse.json({ error: 'invalid_request', error_description: 'Missing required parameters' }, { status: 400 });
+    }
+
+    if (!isValidRedirectUri(redirect_uri)) {
+      return NextResponse.json({ error: 'invalid_request', error_description: 'redirect_uri not allowed' }, { status: 400 });
     }
 
     const cookieStore = await cookies();
