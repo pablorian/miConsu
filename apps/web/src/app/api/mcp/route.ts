@@ -7,7 +7,81 @@ import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
+const PATHOLOGY_FIELDS = [
+  'arrhythmia','ischemicHeartDisease','bacterialEndocarditis','hypertension','hypotension','heartFailure','pacemaker','valvulopathies','heartProblems',
+  'asthma','bronchitis','dyspnea',
+  'dialysis','renalInsufficiency','renalTransplant','kidneyProblems',
+  'cirrhosis','gastritis','hematemesis','hepatitis','jaundice','hepaticInsufficiency','melena','pyrosis','ulcers',
+  'arthritis','arthrosis','pain','osteoporosis',
+  'anemia','coagulopathies','hemorrhages','bloodTransfusion','bloodDisorders',
+  'diabetes','hyperthyroidism','hypothyroidism','thyroid',
+  'emotionalDisorders','convulsions','fainting','epilepsy',
+  'allergies','analgesicsAllergy','anesthesiaAllergy','antibioticsAllergy','antiInflammatoryAllergy',
+  'hiv','hepatitisB','syphilis','tuberculosis','chagas','venerealDiseases',
+  'tumors','eatingDisorders','rheumaticFever','chemotherapy','radiotherapy','other',
+  'smokes','drinksAlcohol','drugs','tattoos','bruxism',
+];
+
+const PATIENT_INPUT_PROPERTIES = {
+  name: { type: 'string', description: 'Nombre del paciente' },
+  lastName: { type: 'string', description: 'Apellido del paciente' },
+  email: { type: 'string', description: 'Email del paciente' },
+  phone: { type: 'string', description: 'Teléfono del paciente' },
+  personalInfo: {
+    type: 'object',
+    description: 'Información personal',
+    properties: {
+      dni: { type: 'string' },
+      sex: { type: 'string', description: 'Sexo: M, F u otro' },
+      age: { type: 'number' },
+      birthDate: { type: 'string', description: 'Fecha de nacimiento ISO (YYYY-MM-DD)' },
+      maritalStatus: { type: 'string' },
+      nationality: { type: 'string' },
+      address: { type: 'string' },
+      neighborhood: { type: 'string' },
+      profession: { type: 'string' },
+    },
+  },
+  medicalCoverage: {
+    type: 'object',
+    description: 'Obra social / cobertura médica',
+    properties: {
+      name: { type: 'string', description: 'Nombre de la obra social' },
+      plan: { type: 'string' },
+      affiliateNumber: { type: 'string' },
+      holderName: { type: 'string' },
+      holderWorkplace: { type: 'string' },
+    },
+  },
+  pathologies: {
+    type: 'object',
+    description: `Antecedentes patológicos. Campos booleanos disponibles: ${PATHOLOGY_FIELDS.join(', ')}. También acepta: observations (string), categoryComments (objeto con claves: cardiovascular, respiratory, urinary, digestive, osteoarticular, hematologic, endocrine, nervous, allergiesComment, infectious, other, lifestyle).`,
+    additionalProperties: true,
+  },
+};
+
 const TOOLS = [
+  {
+    name: 'create_patient',
+    description: 'Crea un nuevo paciente con su ficha médica completa (datos personales, obra social, antecedentes patológicos). Devuelve el patient_id para usar luego con update_patient_odontogram.',
+    inputSchema: {
+      type: 'object',
+      properties: PATIENT_INPUT_PROPERTIES,
+      required: ['name'],
+    },
+  },
+  {
+    name: 'update_patient',
+    description: 'Actualiza los datos de un paciente existente (datos personales, obra social, antecedentes). No actualiza el odontograma — para eso usar update_patient_odontogram.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        patient_id: { type: 'string', description: 'ID del paciente a actualizar' },
+        ...PATIENT_INPUT_PROPERTIES,
+      },
+      required: ['patient_id'],
+    },
+  },
   {
     name: 'search_patients',
     description: 'Busca pacientes por nombre o apellido. Devuelve una lista con id, nombre y apellido.',
@@ -114,8 +188,82 @@ async function getOrCreateDriveFolder(drive: any, name: string, parentId?: strin
   return folder.data.id;
 }
 
+function buildPatientFields(args: any) {
+  const fields: any = {};
+  if (args.name !== undefined) fields.name = args.name;
+  if (args.lastName !== undefined) fields.lastName = args.lastName;
+  if (args.email !== undefined) fields.email = args.email;
+  if (args.phone !== undefined) fields.phone = args.phone;
+  if (args.personalInfo !== undefined) fields.personalInfo = args.personalInfo;
+  if (args.medicalCoverage !== undefined) fields.medicalCoverage = args.medicalCoverage;
+  if (args.pathologies !== undefined) {
+    const { observations, categoryComments, ...boolFields } = args.pathologies;
+    const pathologiesUpdate: any = {};
+    for (const key of PATHOLOGY_FIELDS) {
+      if (boolFields[key] !== undefined) pathologiesUpdate[key] = Boolean(boolFields[key]);
+    }
+    if (observations !== undefined) pathologiesUpdate.observations = observations;
+    if (categoryComments !== undefined) pathologiesUpdate.categoryComments = categoryComments;
+    fields.pathologies = pathologiesUpdate;
+  }
+  return fields;
+}
+
 async function handleToolCall(toolName: string, args: any, user: any) {
   const userId = user._id;
+
+  if (toolName === 'create_patient') {
+    const fields = buildPatientFields(args);
+    if (!fields.name) return { content: [{ type: 'text', text: 'Error: el campo "name" es obligatorio.' }] };
+
+    try {
+      const patient = await Patient.create({ ...fields, userId });
+      return {
+        content: [{
+          type: 'text',
+          text: `Paciente creado correctamente.\nID: ${patient._id}\nNombre: ${patient.name}${patient.lastName ? ' ' + patient.lastName : ''}\n\nPodés usar este ID con update_patient_odontogram para cargar el odontograma.`,
+        }],
+      };
+    } catch (err: any) {
+      if (err.code === 11000) {
+        const field = err.keyPattern?.email ? 'email' : 'teléfono';
+        return { content: [{ type: 'text', text: `Error: ya existe un paciente con ese ${field}.` }] };
+      }
+      throw err;
+    }
+  }
+
+  if (toolName === 'update_patient') {
+    const { patient_id, ...rest } = args;
+    const fields = buildPatientFields(rest);
+
+    if (Object.keys(fields).length === 0) {
+      return { content: [{ type: 'text', text: 'No se proporcionaron campos para actualizar.' }] };
+    }
+
+    try {
+      const patient = await Patient.findOneAndUpdate(
+        { _id: patient_id, userId },
+        { $set: { ...fields, updatedAt: new Date() } },
+        { new: true }
+      ).select('name lastName').lean() as any;
+
+      if (!patient) return { content: [{ type: 'text', text: 'Paciente no encontrado.' }] };
+
+      return {
+        content: [{
+          type: 'text',
+          text: `Paciente actualizado correctamente: ${patient.name}${patient.lastName ? ' ' + patient.lastName : ''}`,
+        }],
+      };
+    } catch (err: any) {
+      if (err.code === 11000) {
+        const field = err.keyPattern?.email ? 'email' : 'teléfono';
+        return { content: [{ type: 'text', text: `Error: ya existe un paciente con ese ${field}.` }] };
+      }
+      throw err;
+    }
+  }
 
   if (toolName === 'search_patients') {
     const { query } = args;
