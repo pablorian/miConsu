@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase from '@repo/database';
-import { User, TreatmentPlan } from '@repo/database';
+import { TreatmentPlan } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string; planId: string }>;
@@ -10,19 +8,10 @@ interface Params {
 
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const session = await verifySession(token.value);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { planId } = await params;
     const body = await req.json();
-    await connectToDatabase();
-
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const plan = await TreatmentPlan.findOneAndUpdate(
       { _id: planId, userId: user._id },
@@ -31,7 +20,6 @@ export async function PUT(req: NextRequest, { params }: Params) {
     );
 
     if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
-
     return NextResponse.json({ plan });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -40,18 +28,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const session = await verifySession(token.value);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { planId } = await params;
-    await connectToDatabase();
-
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const plan = await TreatmentPlan.findOneAndDelete({ _id: planId, userId: user._id });
     if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 });
