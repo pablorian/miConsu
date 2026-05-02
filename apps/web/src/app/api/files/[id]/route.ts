@@ -1,30 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase from '@repo/database';
-import { User, PatientFile } from '@repo/database';
+import { PatientFile } from '@repo/database';
 import { google } from 'googleapis';
+import { requireUser } from '@/lib/auth';
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { id } = await params;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const session = await verifySession(token.value);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     const file = await PatientFile.findById(id);
     if (!file) {
@@ -35,7 +18,6 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Connect to Drive
     if (!user.googleCalendarAccessToken) {
       return NextResponse.json({ error: 'Google Drive not connected' }, { status: 400 });
     }
@@ -52,22 +34,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    // Delete from Drive
     try {
-      await drive.files.delete({
-        fileId: file.fileId
-      });
+      await drive.files.delete({ fileId: file.fileId });
     } catch (driveError) {
+      // Best-effort cleanup: file may already be deleted on Drive; continue with DB removal.
       console.error("Error deleting from drive (might already be deleted):", driveError);
-      // Continue to delete from DB even if drive fails? 
-      // Best effort: if 404, proceed. If 403/401, maybe stop.
     }
 
-    // Delete from DB
     await PatientFile.findByIdAndDelete(id);
-
     return NextResponse.json({ message: 'File deleted' });
-
   } catch (error) {
     console.error('Error deleting file:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
