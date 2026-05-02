@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, TaskBoard } from '@repo/database';
+import { TaskBoard } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 const DEFAULT_STATUSES = [
-  { name: 'Pendiente',   color: '#94a3b8', order: 0 },
-  { name: 'En proceso',  color: '#6366f1', order: 1 },
-  { name: 'Completado',  color: '#22c55e', order: 2 },
+  { name: 'Pendiente',  color: '#94a3b8', order: 0 },
+  { name: 'En proceso', color: '#6366f1', order: 1 },
+  { name: 'Completado', color: '#22c55e', order: 2 },
 ];
 
 const FICHAS_STATUSES = [
@@ -16,22 +15,11 @@ const FICHAS_STATUSES = [
   { name: 'Rechazada',     color: '#ef4444', order: 3 },
 ];
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value) as any;
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: session.id }).lean() as any;
-}
-
 export async function GET() {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
-    // Auto-create default board on first call
     const count = await TaskBoard.countDocuments({ userId: user._id });
     if (count === 0) {
       await TaskBoard.create({
@@ -52,8 +40,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { name, description } = await req.json();
     if (!name?.trim()) return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
