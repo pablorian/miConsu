@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User } from '@repo/database';
+import connectToDatabase, { User, OAuthClient } from '@repo/database';
 import { OAuthAuthCode } from '@repo/database';
 import crypto from 'crypto';
 
@@ -15,13 +15,11 @@ export async function POST(req: NextRequest) {
     // TODO [SECURITY - HIGH]: Sensitive OAuth parameters logged in plaintext. Remove or
     // replace with a structured audit log that redacts code_challenge and state values.
     // Risk: server logs accessible to attackers expose authorization flow details.
-    console.log('[oauth/authorize] request:', { client_id, redirect_uri, code_challenge_method, state });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[oauth/authorize] request:', { client_id, code_challenge_method });
+    }
 
-    // TODO [SECURITY - CRITICAL]: redirect_uri is accepted without whitelist validation.
-    // An attacker can craft an authorization URL with redirect_uri pointing to their server,
-    // steal the authorization code and exchange it for a token.
-    // Fix: validate redirect_uri against the OAuthClient.redirectUris registered for client_id.
-    if (!redirect_uri || !code_challenge) {
+    if (!client_id || !redirect_uri || !code_challenge) {
       return NextResponse.json({ error: 'invalid_request', error_description: 'Missing required parameters' }, { status: 400 });
     }
 
@@ -38,6 +36,18 @@ export async function POST(req: NextRequest) {
     }
 
     await connectToDatabase();
+
+    // Validate client_id against registered clients (fixes #15).
+    const oauthClient = await OAuthClient.findOne({ clientId: client_id });
+    if (!oauthClient) {
+      return NextResponse.json({ error: 'invalid_client', error_description: 'Cliente no registrado' }, { status: 400 });
+    }
+
+    // Validate redirect_uri against the client's registered URIs (fixes #14).
+    if (!oauthClient.redirectUris.includes(redirect_uri)) {
+      return NextResponse.json({ error: 'invalid_request', error_description: 'redirect_uri no autorizada para este cliente' }, { status: 400 });
+    }
+
     const user = await User.findOne({ workosId: (session as any).id });
     if (!user) {
       return NextResponse.json({ error: 'unauthorized', error_description: 'User not found' }, { status: 401 });
@@ -46,10 +56,6 @@ export async function POST(req: NextRequest) {
     const code = crypto.randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // TODO [SECURITY - CRITICAL]: client_id is never validated against registered clients.
-    // Any arbitrary string is accepted and stored, allowing impersonation of legitimate clients
-    // and bypassing access control. Fix: look up client_id in OAuthClient collection and reject
-    // unknown clients before creating the authorization code.
     await OAuthAuthCode.create({
       userId: user._id,
       code,

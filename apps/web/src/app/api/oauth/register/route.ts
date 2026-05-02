@@ -14,6 +14,17 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
+function isValidRedirectUri(uri: string): boolean {
+  try {
+    const url = new URL(uri);
+    if (url.protocol === 'https:') return true;
+    if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1')) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * RFC 7591 — Dynamic Client Registration
  *
@@ -33,11 +44,9 @@ export async function POST(req: NextRequest) {
   }
 
   const clientId = `mcp_${crypto.randomBytes(16).toString('hex')}`;
-  // TODO [SECURITY - HIGH]: redirect_uris are stored without any URL format validation.
-  // Malformed or javascript: scheme URIs could be used for open redirect or XSS attacks
-  // once a user authorizes a client with such a redirect_uri.
-  // Fix: validate each URI with URL constructor and reject non-https/localhost URIs.
-  const redirectUris = Array.isArray(body.redirect_uris) ? body.redirect_uris : [];
+  const redirectUris = Array.isArray(body.redirect_uris)
+    ? body.redirect_uris.filter((uri: unknown) => typeof uri === 'string' && isValidRedirectUri(uri))
+    : [];
   const clientName = body.client_name || 'MCP Client';
 
   // Persist so we can show a friendly client name in the user's connections list.
