@@ -6,6 +6,11 @@ import { matchPatient } from '@/lib/patient-matching';
 
 export const dynamic = 'force-dynamic';
 
+// TODO [SECURITY - CRITICAL]: This entire endpoint has NO authentication check.
+// Any anonymous caller can POST with any userId to create calendar events on
+// behalf of that user, read their Google tokens, and write to their appointment DB.
+// MongoDB ObjectIds encode a timestamp and are not secret — they are guessable.
+// Fix: require a valid session cookie, derive userId from the session, never from the body.
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

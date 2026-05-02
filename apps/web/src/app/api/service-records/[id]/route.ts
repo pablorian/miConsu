@@ -37,6 +37,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    // TODO [SECURITY - CRITICAL]: Mass assignment — entire request body passed directly to
+    // findByIdAndUpdate with no field whitelist. An attacker can overwrite any field including
+    // financial data (price, paid, discount), patientId, or userId, corrupting records.
+    // Fix: whitelist updatable fields explicitly before the update call.
     const updatedRecord = await ServiceRecord.findByIdAndUpdate(id, body, { new: true });
 
     return NextResponse.json({ record: updatedRecord });
