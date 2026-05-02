@@ -15,6 +15,9 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
+// TODO [SECURITY - MEDIUM]: Plain PKCE method is accepted (fallback when method !== 'S256').
+// This allows the code_verifier to equal the code_challenge in plaintext, removing the
+// cryptographic protection PKCE provides. Fix: reject any method other than 'S256'.
 function verifyPKCE(codeVerifier: string, codeChallenge: string, method: string): boolean {
   if (method === 'S256') {
     const hash = crypto.createHash('sha256').update(codeVerifier).digest();
@@ -24,6 +27,10 @@ function verifyPKCE(codeVerifier: string, codeChallenge: string, method: string)
   return codeVerifier === codeChallenge;
 }
 
+// TODO [SECURITY - HIGH]: No rate limiting on this endpoint. An attacker can brute-force
+// authorization codes or make unlimited token exchange attempts.
+// Fix: add IP-based rate limiting (e.g. 10 req/min per IP) using a middleware or
+// an in-memory store like Upstash Ratelimit.
 export async function POST(req: NextRequest) {
   try {
     let body: Record<string, string> = {};
@@ -51,6 +58,9 @@ export async function POST(req: NextRequest) {
 
     const authCode = await OAuthAuthCode.findOne({ code, used: false });
 
+    // TODO [SECURITY - LOW]: Distinct error messages ("Invalid or expired code" vs "Code expired")
+    // allow attackers to distinguish valid but expired codes from invalid ones, enabling
+    // code enumeration attacks. Fix: return a single generic 'invalid_grant' message for both.
     if (!authCode) return err('invalid_grant', 'Invalid or expired code');
     if (authCode.expiresAt < new Date()) return err('invalid_grant', 'Code expired');
     if (authCode.redirectUri !== redirect_uri) return err('invalid_grant', 'redirect_uri mismatch');

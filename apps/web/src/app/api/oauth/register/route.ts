@@ -21,6 +21,9 @@ export async function OPTIONS() {
  * (with its declared name) so we can later show users which apps have
  * connected to their account.
  */
+// TODO [SECURITY - HIGH]: No rate limiting on dynamic client registration. An attacker can
+// register unlimited clients, polluting the OAuthClient collection and causing storage DoS.
+// Fix: add IP-based rate limiting (e.g. 5 registrations/hour per IP).
 export async function POST(req: NextRequest) {
   let body: any = {};
   try {
@@ -30,6 +33,10 @@ export async function POST(req: NextRequest) {
   }
 
   const clientId = `mcp_${crypto.randomBytes(16).toString('hex')}`;
+  // TODO [SECURITY - HIGH]: redirect_uris are stored without any URL format validation.
+  // Malformed or javascript: scheme URIs could be used for open redirect or XSS attacks
+  // once a user authorizes a client with such a redirect_uri.
+  // Fix: validate each URI with URL constructor and reject non-https/localhost URIs.
   const redirectUris = Array.isArray(body.redirect_uris) ? body.redirect_uris : [];
   const clientName = body.client_name || 'MCP Client';
 

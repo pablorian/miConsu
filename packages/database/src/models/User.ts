@@ -37,6 +37,11 @@ const UserSchema: Schema = new Schema({
   publicId: { type: String, unique: true, sparse: true, trim: true }, // Sparse allows multiple nulls
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+  // TODO [SECURITY - HIGH]: Google OAuth tokens stored as plaintext in MongoDB.
+  // If the database is compromised, attackers gain full access to users' Google Calendar
+  // and Drive accounts, including patient files uploaded to Drive.
+  // Fix: encrypt tokens at rest using AES-256-GCM with a key stored in environment
+  // variables (not in the DB), and decrypt only when needed for API calls.
   googleCalendarAccessToken: { type: String },
   googleCalendarRefreshToken: { type: String },
   googleCalendarTokenExpiry: { type: Date },

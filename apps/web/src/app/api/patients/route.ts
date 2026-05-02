@@ -36,6 +36,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ patient: patient || null });
     }
 
+    // TODO [SECURITY - MEDIUM]: No pagination or result limit. A user with thousands of
+    // patients will return a massive payload, potentially causing memory exhaustion and DoS.
+    // Fix: add .limit() or support cursor-based pagination via ?page=&limit= query params.
     const patients = await Patient.find({ userId: user._id }).sort({ createdAt: -1 });
 
     return NextResponse.json({ patients });

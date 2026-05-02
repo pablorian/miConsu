@@ -12,8 +12,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { client_id, redirect_uri, code_challenge, code_challenge_method, state } = body;
 
+    // TODO [SECURITY - HIGH]: Sensitive OAuth parameters logged in plaintext. Remove or
+    // replace with a structured audit log that redacts code_challenge and state values.
+    // Risk: server logs accessible to attackers expose authorization flow details.
     console.log('[oauth/authorize] request:', { client_id, redirect_uri, code_challenge_method, state });
 
+    // TODO [SECURITY - CRITICAL]: redirect_uri is accepted without whitelist validation.
+    // An attacker can craft an authorization URL with redirect_uri pointing to their server,
+    // steal the authorization code and exchange it for a token.
+    // Fix: validate redirect_uri against the OAuthClient.redirectUris registered for client_id.
     if (!redirect_uri || !code_challenge) {
       return NextResponse.json({ error: 'invalid_request', error_description: 'Missing required parameters' }, { status: 400 });
     }
@@ -39,6 +46,10 @@ export async function POST(req: NextRequest) {
     const code = crypto.randomBytes(32).toString('base64url');
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
+    // TODO [SECURITY - CRITICAL]: client_id is never validated against registered clients.
+    // Any arbitrary string is accepted and stored, allowing impersonation of legitimate clients
+    // and bypassing access control. Fix: look up client_id in OAuthClient collection and reject
+    // unknown clients before creating the authorization code.
     await OAuthAuthCode.create({
       userId: user._id,
       code,
