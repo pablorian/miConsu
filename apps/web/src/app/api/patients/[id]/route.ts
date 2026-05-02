@@ -1,29 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase from '@repo/database';
-import { User, Patient } from '@repo/database';
+import { Patient } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { id } = await params;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const session = await verifySession(token.value);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     const patient = await Patient.findOne({ _id: id, userId: user._id });
 
@@ -39,26 +22,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { id } = await params;
 
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const session = await verifySession(token.value);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const { name, lastName, email, phone, personalInfo, medicalCoverage, pathologies, odontogram, periodontogram } = await req.json();
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     const patient = await Patient.findOneAndUpdate(
       { _id: id, userId: user._id },
@@ -91,24 +59,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { id } = await params;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const session = await verifySession(token.value);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
 
     const patient = await Patient.findOneAndDelete({ _id: id, userId: user._id });
 
