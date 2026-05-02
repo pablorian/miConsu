@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Patient, ServiceRecord, Professional, ProfessionalLiquidation } from '@repo/database';
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value) as any;
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: session.id }).lean() as any;
-}
+import { Patient, ServiceRecord, Professional, ProfessionalLiquidation } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 /** Resolve effective % for a given obra social name, using per-OS overrides or falling back to generic */
 function resolvePercentage(prof: any, obraSocialName: string | null): number | null {
@@ -27,17 +16,15 @@ function resolvePercentage(prof: any, obraSocialName: string | null): number | n
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const from = searchParams.get('from');
     const to   = searchParams.get('to');
 
-    // Get all professionals for this user
     const professionals = await Professional.find({ userId: user._id }).lean() as any[];
 
-    // Get all patients for this user — include name, lastName, medicalCoverage
     const allPatients = await Patient.find({ userId: user._id })
       .select('_id name lastName medicalCoverage')
       .lean() as any[];
@@ -52,7 +39,6 @@ export async function GET(request: NextRequest) {
 
     const allPatientIds = allPatients.map((p: any) => p._id);
 
-    // Build professional lookup maps
     const profById: Record<string, any>   = {};
     const profByName: Record<string, any> = {};
     for (const p of professionals) {
@@ -60,7 +46,6 @@ export async function GET(request: NextRequest) {
       profByName[p.name.toLowerCase()] = p;
     }
 
-    // Build date filter
     const dateFilter: any = {};
     if (from) dateFilter.$gte = new Date(from);
     if (to) {
@@ -69,17 +54,14 @@ export async function GET(request: NextRequest) {
       dateFilter.$lte = toDate;
     }
 
-    // Get service records in period
     const srQuery: any = { patientId: { $in: allPatientIds } };
     if (from || to) srQuery.date = dateFilter;
     const periodSRs = await (ServiceRecord as any).find(srQuery).sort({ date: 1 }).lean() as any[];
 
-    // Get liquidation payments in period
     const liqQuery: any = { userId: user._id };
     if (from || to) liqQuery.date = dateFilter;
     const periodLiquidations = await (ProfessionalLiquidation as any).find(liqQuery).sort({ date: 1 }).lean() as any[];
 
-    // Group liquidations by professional
     const liqByProf: Record<string, any[]> = {};
     for (const liq of periodLiquidations) {
       const key = liq.professionalId.toString();
@@ -92,7 +74,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Group SRs by professional, resolving per-OS percentage
     const srsByProf: Record<string, any[]> = {};
     for (const sr of periodSRs) {
       let prof: any = null;
@@ -123,7 +104,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Build result
     const profKeys = new Set([
       ...Object.keys(srsByProf),
       ...Object.keys(liqByProf),
@@ -142,12 +122,10 @@ export async function GET(request: NextRequest) {
       const atenciones = srs.length;
       const yaLiquidado = liquidations.reduce((s: number, l: any) => s + l.amount, 0);
 
-      // liquidacionDisponible = sum of per-SR gananciaProf
       const liquidacionDisponible = srs.reduce((s: number, sr: any) => s + (sr.gananciaProf ?? 0), 0);
-
       const saldoALiquidar = Math.max(0, Math.round((liquidacionDisponible - yaLiquidado) * 100) / 100);
 
-      // totalGananciaProf uses generic % as estimate of what professional earns when all is paid
+      // generic % used as estimate of professional total earnings when all SRs are paid
       const genericPct = prof.percentage ?? null;
       const totalGananciaProf = genericPct !== null && genericPct > 0
         ? Math.round((facturado * genericPct) / 100 * 100) / 100
