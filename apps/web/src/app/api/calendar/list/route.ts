@@ -1,25 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
-import connectToDatabase, { User } from '@repo/database';
-import { verifySession } from '@/lib/session';
+import { User } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const { user, error } = await requireUser();
+  if (error) return error;
 
-  const session: any = await verifySession(token);
-  if (!session || !session.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  await connectToDatabase();
-  const user = await User.findOne({ workosId: session.id });
-
-  if (!user || !user.googleCalendarAccessToken) {
+  if (!user.googleCalendarAccessToken) {
     return NextResponse.json({ error: 'Calendar not connected' }, { status: 400 });
   }
 
@@ -36,31 +26,22 @@ export async function GET(request: NextRequest) {
 
   oauth2Client.on('tokens', async (tokens) => {
     if (tokens.access_token) {
-      await User.findOneAndUpdate(
-        { workosId: session.id },
-        {
-          googleCalendarAccessToken: tokens.access_token,
-          googleCalendarTokenExpiry: new Date(tokens.expiry_date || Date.now() + 3500 * 1000),
-        }
-      );
+      await User.findByIdAndUpdate(user._id, {
+        googleCalendarAccessToken: tokens.access_token,
+        googleCalendarTokenExpiry: new Date(tokens.expiry_date || Date.now() + 3500 * 1000),
+      });
     }
   });
 
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
   try {
-    const calendarList = await calendar.calendarList.list({
-      showHidden: true,
-    });
-
+    const calendarList = await calendar.calendarList.list({ showHidden: true });
     const items = calendarList.data.items || [];
 
-    // Sync logic: Ensure all fetched calendars exist in user preferences
-    // If we have no preferences yet, initialize them
     if (!user.calendarPreferences) {
       user.calendarPreferences = { view: 'week', calendars: [] };
     }
-    // Defensive array check
     if (!Array.isArray(user.calendarPreferences.calendars)) {
       user.calendarPreferences.calendars = [];
     }
@@ -70,22 +51,17 @@ export async function GET(request: NextRequest) {
 
     items.forEach(cal => {
       if (cal.id && !existingIds.has(cal.id)) {
-        user.calendarPreferences.calendars.push({
-          calendarId: cal.id,
-          visible: true // Default to visible
-        });
-        existingIds.add(cal.id); // Prevent dupes locally if google returns dupes?
+        user.calendarPreferences.calendars.push({ calendarId: cal.id, visible: true });
+        existingIds.add(cal.id);
         preferencesChanged = true;
       }
     });
 
     if (preferencesChanged) {
-      // Mark explicitly as modified for mixed/nested types just in case
       user.markModified('calendarPreferences.calendars');
       await user.save();
     }
 
-    // Map to a cleaner format
     const calendars = items.map(cal => ({
       id: cal.id,
       summary: cal.summary,
