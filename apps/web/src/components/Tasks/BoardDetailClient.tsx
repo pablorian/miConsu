@@ -68,9 +68,15 @@ function TaskFormModal({ board, task, defaultStatusId, onClose, onSaved }: TaskF
     statusId:    task?.statusId || defaultStatusId || board.statuses[0]?._id || '',
     priority:    (task?.priority || 'none') as Priority,
     dueDate:     task?.dueDate ? task.dueDate.slice(0, 10) : '',
+    obraSocial:  task?.obraSocial || '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [obrasSociales, setObrasSociales] = useState<{ name: string; code: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/obras-sociales').then(r => r.json()).then(d => { if (d.items) setObrasSociales(d.items); });
+  }, []);
 
   const inputCls = 'w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-transparent text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50';
   const labelCls = 'block text-xs font-medium text-muted-foreground mb-1';
@@ -141,9 +147,20 @@ function TaskFormModal({ board, task, defaultStatusId, onClose, onSaved }: TaskF
             </div>
           </div>
 
-          <div>
-            <label className={labelCls}>Fecha límite</label>
-            <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className={inputCls} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Fecha límite</label>
+              <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Obra social</label>
+              <select value={form.obraSocial} onChange={e => setForm(f => ({ ...f, obraSocial: e.target.value }))} className={inputCls}>
+                <option value="">Sin especificar</option>
+                {obrasSociales.map(o => (
+                  <option key={o.code} value={o.name}>{o.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
@@ -357,9 +374,10 @@ interface ColumnViewProps {
   onEditTask: (t: Task) => void;
   onDeleteTask: (id: string) => void;
   onTaskMoved: (taskId: string, newStatusId: string) => void;
+  onReorderColumn: (statusId: string, direction: 'left' | 'right') => void;
 }
 
-function ColumnView({ board, tasks, onAddTask, onEditTask, onDeleteTask, onTaskMoved }: ColumnViewProps) {
+function ColumnView({ board, tasks, onAddTask, onEditTask, onDeleteTask, onTaskMoved, onReorderColumn }: ColumnViewProps) {
   const [dragging, setDragging] = useState<Task | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
 
@@ -395,9 +413,27 @@ function ColumnView({ board, tasks, onAddTask, onEditTask, onDeleteTask, onTaskM
                 <span className="text-xs font-semibold text-foreground uppercase tracking-wide">{status.name}</span>
                 <span className="text-xs text-muted-foreground bg-gray-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full">{colTasks.length}</span>
               </div>
-              <button onClick={() => onAddTask(status._id)} className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-              </button>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => onReorderColumn(status._id, 'left')}
+                  disabled={sorted.indexOf(status) === 0}
+                  className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                  title="Mover columna a la izquierda"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button
+                  onClick={() => onReorderColumn(status._id, 'right')}
+                  disabled={sorted.indexOf(status) === sorted.length - 1}
+                  className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                  title="Mover columna a la derecha"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <button onClick={() => onAddTask(status._id)} className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                </button>
+              </div>
             </div>
 
             {/* Tasks */}
@@ -566,6 +602,12 @@ export default function BoardDetailClient({ boardId }: Props) {
   const [view, setView] = useState<'column' | 'list'>('column');
   const [taskModal, setTaskModal] = useState<{ open: boolean; task?: Task | null; defaultStatusId?: string }>({ open: false });
   const [statusModal, setStatusModal] = useState(false);
+  const [filters, setFilters] = useState({ obraSocial: '', dateFrom: '', dateTo: '' });
+  const [obrasSociales, setObrasSociales] = useState<{ name: string; code: string }[]>([]);
+
+  useEffect(() => {
+    fetch('/api/obras-sociales').then(r => r.json()).then(d => { if (d.items) setObrasSociales(d.items); });
+  }, []);
 
   const fetchBoard = useCallback(async () => {
     const [br, tr] = await Promise.all([
@@ -590,6 +632,28 @@ export default function BoardDetailClient({ boardId }: Props) {
     if (res.ok) setTasks(prev => prev.filter(t => t._id !== id));
   };
 
+  const handleReorderColumn = async (statusId: string, direction: 'left' | 'right') => {
+    if (!board) return;
+    const sorted = [...board.statuses].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(s => s._id === statusId);
+    const swapIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const updated = sorted.map((s, i) => {
+      if (i === idx) return { ...s, order: sorted[swapIdx].order };
+      if (i === swapIdx) return { ...s, order: sorted[idx].order };
+      return s;
+    });
+
+    setBoard({ ...board, statuses: updated });
+
+    await fetch(`/api/boards/${boardId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statuses: updated }),
+    });
+  };
+
   const handleStatusChange = async (taskId: string, statusId: string) => {
     const res = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
       method: 'PUT',
@@ -604,6 +668,14 @@ export default function BoardDetailClient({ boardId }: Props) {
 
   if (loading) return <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">Cargando tablero…</div>;
   if (!board) return <div className="flex items-center justify-center py-20 text-sm text-muted-foreground">Tablero no encontrado</div>;
+
+  const filteredTasks = tasks.filter(t => {
+    if (filters.obraSocial && t.obraSocial !== filters.obraSocial) return false;
+    if (filters.dateFrom && t.createdAt < filters.dateFrom) return false;
+    if (filters.dateTo && t.createdAt > filters.dateTo + 'T23:59:59') return false;
+    return true;
+  });
+  const activeFilterCount = [filters.obraSocial, filters.dateFrom, filters.dateTo].filter(Boolean).length;
 
   const tabCls = (active: boolean) =>
     `flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
@@ -648,7 +720,7 @@ export default function BoardDetailClient({ boardId }: Props) {
       {/* Stats bar */}
       <div className="flex items-center gap-4 flex-wrap">
         {board.statuses.sort((a, b) => a.order - b.order).map(s => {
-          const count = tasks.filter(t => t.statusId === s._id).length;
+          const count = filteredTasks.filter(t => t.statusId === s._id).length;
           return (
             <div key={s._id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
@@ -658,7 +730,48 @@ export default function BoardDetailClient({ boardId }: Props) {
           );
         })}
         <div className="flex-1" />
-        <span className="text-xs text-muted-foreground">{tasks.length} tarea{tasks.length !== 1 ? 's' : ''} en total</span>
+        <span className="text-xs text-muted-foreground">
+          {activeFilterCount > 0 ? `${filteredTasks.length} de ${tasks.length}` : tasks.length} tarea{tasks.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h18M7 10h10M11 16h2" /></svg>
+          Filtros
+        </div>
+        <select
+          value={filters.obraSocial}
+          onChange={e => setFilters(f => ({ ...f, obraSocial: e.target.value }))}
+          className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+        >
+          <option value="">Todas las obras sociales</option>
+          {obrasSociales.map(o => <option key={o.code} value={o.name}>{o.name}</option>)}
+        </select>
+        <input
+          type="date"
+          value={filters.dateFrom}
+          onChange={e => setFilters(f => ({ ...f, dateFrom: e.target.value }))}
+          className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          title="Desde"
+        />
+        <input
+          type="date"
+          value={filters.dateTo}
+          onChange={e => setFilters(f => ({ ...f, dateTo: e.target.value }))}
+          className="text-xs border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+          title="Hasta"
+        />
+        {activeFilterCount > 0 && (
+          <button
+            onClick={() => setFilters({ obraSocial: '', dateFrom: '', dateTo: '' })}
+            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            Limpiar ({activeFilterCount})
+          </button>
+        )}
       </div>
 
       {/* Board content */}
@@ -666,16 +779,17 @@ export default function BoardDetailClient({ boardId }: Props) {
         {view === 'column' ? (
           <ColumnView
             board={board}
-            tasks={tasks}
+            tasks={filteredTasks}
             onAddTask={statusId => setTaskModal({ open: true, defaultStatusId: statusId })}
             onEditTask={task => setTaskModal({ open: true, task })}
             onDeleteTask={handleDelete}
             onTaskMoved={handleStatusChange}
+            onReorderColumn={handleReorderColumn}
           />
         ) : (
           <ListView
             board={board}
-            tasks={tasks}
+            tasks={filteredTasks}
             onAddTask={statusId => setTaskModal({ open: true, defaultStatusId: statusId })}
             onEditTask={task => setTaskModal({ open: true, task })}
             onDeleteTask={handleDelete}

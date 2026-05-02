@@ -30,6 +30,7 @@ export async function PUT(
     if (body.priority !== undefined)    update.priority    = body.priority;
     if (body.dueDate !== undefined)     update.dueDate     = body.dueDate ? new Date(body.dueDate) : null;
     if (body.order !== undefined)       update.order       = body.order;
+    if (body.obraSocial !== undefined)  update.obraSocial  = body.obraSocial?.trim() || null;
 
     const task = await Task.findOneAndUpdate(
       { _id: taskId, userId: user._id },

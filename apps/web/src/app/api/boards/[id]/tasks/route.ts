@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const board = await TaskBoard.findOne({ _id: boardId, userId: user._id }).lean();
     if (!board) return NextResponse.json({ error: 'Board not found' }, { status: 404 });
 
-    const { title, description, statusId, priority, dueDate } = await req.json();
+    const { title, description, statusId, priority, dueDate, obraSocial } = await req.json();
     if (!title?.trim()) return NextResponse.json({ error: 'El título es obligatorio' }, { status: 400 });
     if (!statusId) return NextResponse.json({ error: 'El estado es obligatorio' }, { status: 400 });
 
@@ -51,6 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       statusId,
       priority: priority || 'none',
       dueDate: dueDate ? new Date(dueDate) : null,
+      obraSocial: obraSocial?.trim() || undefined,
       order,
     });
     return NextResponse.json({ task }, { status: 201 });
