@@ -1,39 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase, { User, UserSettings } from '@repo/database';
-import { verifySession } from '@/lib/session';
+import { UserSettings } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-async function getUser(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
-  if (!token) return null;
-  const session: any = await verifySession(token);
-  if (!session?.id) return null;
-  await connectToDatabase();
-  const user = await User.findOne({ workosId: session.id }).lean() as any;
-  return user;
-}
+const DEFAULT_TEMPLATE = 'Hola {nombre}, te recordamos tu turno el {fecha} a las {hora} hs. ¡Te esperamos! 🗓️';
 
 export async function GET(request: NextRequest) {
-  const user = await getUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { user, error } = await requireUser();
+  if (error) return error;
 
   const settings = await UserSettings.findOne({ userId: user._id }).lean() as any;
 
-  const defaultTemplate = 'Hola {nombre}, te recordamos tu turno el {fecha} a las {hora} hs. ¡Te esperamos! 🗓️';
-
   return NextResponse.json({
     autoGenerateFichasObrasSociales: settings?.autoGenerateFichasObrasSociales ?? false,
-    whatsappReminderTemplate: settings?.whatsappReminderTemplate ?? defaultTemplate,
+    whatsappReminderTemplate: settings?.whatsappReminderTemplate ?? DEFAULT_TEMPLATE,
   });
 }
 
 export async function PUT(request: NextRequest) {
-  const user = await getUser(request);
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { user, error } = await requireUser();
+  if (error) return error;
 
-  const body = await request.json();
-  const { autoGenerateFichasObrasSociales, whatsappReminderTemplate } = body;
+  const { autoGenerateFichasObrasSociales, whatsappReminderTemplate } = await request.json();
 
   const updated = await UserSettings.findOneAndUpdate(
     { userId: user._id },
