@@ -357,9 +357,10 @@ interface ColumnViewProps {
   onEditTask: (t: Task) => void;
   onDeleteTask: (id: string) => void;
   onTaskMoved: (taskId: string, newStatusId: string) => void;
+  onReorderColumn: (statusId: string, direction: 'left' | 'right') => void;
 }
 
-function ColumnView({ board, tasks, onAddTask, onEditTask, onDeleteTask, onTaskMoved }: ColumnViewProps) {
+function ColumnView({ board, tasks, onAddTask, onEditTask, onDeleteTask, onTaskMoved, onReorderColumn }: ColumnViewProps) {
   const [dragging, setDragging] = useState<Task | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<string | null>(null);
 
@@ -395,9 +396,27 @@ function ColumnView({ board, tasks, onAddTask, onEditTask, onDeleteTask, onTaskM
                 <span className="text-xs font-semibold text-foreground uppercase tracking-wide">{status.name}</span>
                 <span className="text-xs text-muted-foreground bg-gray-200 dark:bg-zinc-700 px-1.5 py-0.5 rounded-full">{colTasks.length}</span>
               </div>
-              <button onClick={() => onAddTask(status._id)} className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-              </button>
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={() => onReorderColumn(status._id, 'left')}
+                  disabled={sorted.indexOf(status) === 0}
+                  className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                  title="Mover columna a la izquierda"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button
+                  onClick={() => onReorderColumn(status._id, 'right')}
+                  disabled={sorted.indexOf(status) === sorted.length - 1}
+                  className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
+                  title="Mover columna a la derecha"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <button onClick={() => onAddTask(status._id)} className="p-1 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/8 transition-colors">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                </button>
+              </div>
             </div>
 
             {/* Tasks */}
@@ -590,6 +609,28 @@ export default function BoardDetailClient({ boardId }: Props) {
     if (res.ok) setTasks(prev => prev.filter(t => t._id !== id));
   };
 
+  const handleReorderColumn = async (statusId: string, direction: 'left' | 'right') => {
+    if (!board) return;
+    const sorted = [...board.statuses].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(s => s._id === statusId);
+    const swapIdx = direction === 'left' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    const updated = sorted.map((s, i) => {
+      if (i === idx) return { ...s, order: sorted[swapIdx].order };
+      if (i === swapIdx) return { ...s, order: sorted[idx].order };
+      return s;
+    });
+
+    setBoard({ ...board, statuses: updated });
+
+    await fetch(`/api/boards/${boardId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statuses: updated }),
+    });
+  };
+
   const handleStatusChange = async (taskId: string, statusId: string) => {
     const res = await fetch(`/api/boards/${boardId}/tasks/${taskId}`, {
       method: 'PUT',
@@ -671,6 +712,7 @@ export default function BoardDetailClient({ boardId }: Props) {
             onEditTask={task => setTaskModal({ open: true, task })}
             onDeleteTask={handleDelete}
             onTaskMoved={handleStatusChange}
+            onReorderColumn={handleReorderColumn}
           />
         ) : (
           <ListView
