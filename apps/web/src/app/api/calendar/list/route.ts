@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { User } from '@repo/database';
 import { requireUser } from '@/lib/auth';
+import { getGoogleCalendarClient } from '@/lib/google-calendar-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,27 +12,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Calendar not connected' }, { status: 400 });
   }
 
-  const oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET
-  );
-
-  oauth2Client.setCredentials({
-    access_token: user.googleCalendarAccessToken,
-    refresh_token: user.googleCalendarRefreshToken,
-    expiry_date: user.googleCalendarTokenExpiry?.getTime()
-  });
-
-  oauth2Client.on('tokens', async (tokens) => {
-    if (tokens.access_token) {
-      await User.findByIdAndUpdate(user._id, {
-        googleCalendarAccessToken: tokens.access_token,
-        googleCalendarTokenExpiry: new Date(tokens.expiry_date || Date.now() + 3500 * 1000),
-      });
-    }
-  });
-
-  const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  const calendar = getGoogleCalendarClient(user);
 
   try {
     const calendarList = await calendar.calendarList.list({ showHidden: true });
