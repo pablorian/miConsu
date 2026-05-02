@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { format, addDays, startOfToday } from 'date-fns';
+import { format, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface BookingWizardProps {
@@ -12,15 +12,13 @@ interface BookingWizardProps {
   userTimezone?: string;
 }
 
-export default function BookingWizard({ userId, userPublicId, calendarId, calendarSlug, userTimezone }: BookingWizardProps) {
+export default function BookingWizard({ userPublicId, calendarSlug }: BookingWizardProps) {
   const [step, setStep] = useState(1);
   const [selectedDate, setSelectedDate] = useState<Date>(startOfToday());
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
 
-  // Form Data
   const [formData, setFormData] = useState({
     fullName: '',
     phone: '',
@@ -28,7 +26,6 @@ export default function BookingWizard({ userId, userPublicId, calendarId, calend
     reason: 'Primera Consulta'
   });
 
-  // Step 1: Fetch Slots when date changes
   useEffect(() => {
     fetchSlots();
   }, [selectedDate]);
@@ -43,9 +40,6 @@ export default function BookingWizard({ userId, userPublicId, calendarId, calend
       if (res.ok) {
         const data = await res.json();
         setAvailableSlots(data.slots || []);
-        if (data.slots && data.slots.length === 0) {
-          console.log("No slots returned");
-        }
       } else {
         console.error("Failed to fetch slots");
       }
@@ -55,10 +49,6 @@ export default function BookingWizard({ userId, userPublicId, calendarId, calend
       setLoadingSlots(false);
     }
   };
-
-  // Refactor needed: The component props don't match API needs perfectly.
-  // I'll assume for this draft I have them.
-  // But wait, I can just Fix the Page to pass them.
 
   return (
     <div className="min-h-[400px]">
@@ -206,10 +196,7 @@ export default function BookingWizard({ userId, userPublicId, calendarId, calend
 
           <div className="flex justify-between items-center">
             <button onClick={() => setStep(2)} className="text-gray-600 hover:underline">Atrás</button>
-            <button
-              // Call Create API
-              className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
-            >
+            <button className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium">
               Confirmar Reserva
             </button>
           </div>
