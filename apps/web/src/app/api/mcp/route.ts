@@ -7,6 +7,9 @@ import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
+// TODO [SECURITY - MEDIUM]: CORS is open to all origins ('*'). While the endpoint requires
+// a Bearer token, this removes one layer of defense. Consider restricting to known origins
+// (Claude.ai domains) once the MCP integration is stable.
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -282,6 +285,13 @@ async function handleToolCall(toolName: string, args: any, user: any) {
 
   if (toolName === 'search_patients') {
     const { query } = args;
+    // TODO [SECURITY - CRITICAL]: query is passed directly into a MongoDB $regex without escaping.
+    // An attacker with a valid OAuth token can inject catastrophic regex patterns (ReDoS):
+    //   e.g. query = "^(a+)+$" causes exponential backtracking and server-side DoS.
+    // They can also extract all patients by passing ".*" as query.
+    // Fix: escape the query string before using it in regex, e.g.:
+    //   const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // and enforce a maximum query length.
     const patients = await Patient.find({
       userId,
       $or: [
@@ -311,6 +321,10 @@ async function handleToolCall(toolName: string, args: any, user: any) {
 
   if (toolName === 'update_patient_odontogram') {
     const { patient_id, odontogram } = args;
+    // TODO [SECURITY - MEDIUM]: odontogram array is stored without schema validation.
+    // A malicious client could send arbitrary nested objects causing data corruption or
+    // breaking downstream rendering. Fix: validate each tooth entry against the expected
+    // shape (toothNumber, surfaces with known state values) before persisting.
     const patient = await Patient.findOneAndUpdate(
       { _id: patient_id, userId },
       { odontogram, updatedAt: new Date() },
