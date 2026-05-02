@@ -1,26 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, GenericTransaction } from '@repo/database';
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value) as any;
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: session.id }).lean() as any;
-}
+import { GenericTransaction } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { searchParams } = new URL(request.url);
     const from = searchParams.get('from');
-    const to   = searchParams.get('to');
+    const to = searchParams.get('to');
 
     const query: any = { userId: user._id };
     if (from || to) {
@@ -33,11 +22,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const transactions = await (GenericTransaction as any)
-      .find(query)
-      .sort({ date: -1 })
-      .lean();
-
+    const transactions = await (GenericTransaction as any).find(query).sort({ date: -1 }).lean();
     return NextResponse.json({ transactions });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -46,11 +31,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
-    const body = await request.json();
-    const { type, date, amount, concept, category, paymentMethod, notes } = body;
+    const { type, date, amount, concept, category, paymentMethod, notes } = await request.json();
 
     if (!type || !['ingreso', 'egreso'].includes(type))
       return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
