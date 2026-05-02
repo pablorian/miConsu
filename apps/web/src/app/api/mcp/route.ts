@@ -285,18 +285,16 @@ async function handleToolCall(toolName: string, args: any, user: any) {
 
   if (toolName === 'search_patients') {
     const { query } = args;
-    // TODO [SECURITY - CRITICAL]: query is passed directly into a MongoDB $regex without escaping.
-    // An attacker with a valid OAuth token can inject catastrophic regex patterns (ReDoS):
-    //   e.g. query = "^(a+)+$" causes exponential backtracking and server-side DoS.
-    // They can also extract all patients by passing ".*" as query.
-    // Fix: escape the query string before using it in regex, e.g.:
-    //   const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    // and enforce a maximum query length.
+    if (!query || typeof query !== 'string' || query.trim().length === 0 || query.length > 100) {
+      return { content: [{ type: 'text', text: 'Query inválida. Ingresá un nombre de entre 1 y 100 caracteres.' }] };
+    }
+    // Escape all regex special chars to prevent ReDoS and data extraction via wildcard patterns.
+    const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const patients = await Patient.find({
       userId,
       $or: [
-        { name: { $regex: query, $options: 'i' } },
-        { lastName: { $regex: query, $options: 'i' } },
+        { name: { $regex: safeQuery, $options: 'i' } },
+        { lastName: { $regex: safeQuery, $options: 'i' } },
       ],
     }).select('_id name lastName email').limit(10).lean();
 
