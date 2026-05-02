@@ -9,7 +9,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const cookieStore = await cookies();
     const token = cookieStore.get('token');
     const { id: patientId } = await params;
-    console.log('[API] GET records for patientId:', patientId);
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -21,21 +20,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     await connectToDatabase();
-    // Validate user owns patient
     const user = await User.findOne({ workosId: (session as any).id });
     if (!user) {
-      console.log('[API] User not found for session');
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     const patient = await Patient.findOne({ _id: patientId, userId: user._id });
     if (!patient) {
-      console.log('[API] Patient not found or not owned by user. patientId:', patientId, 'userId:', user._id);
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
 
     const records = await DentalRecord.find({ patientId }).sort({ date: -1 });
-    console.log('[API] Found records:', records.length);
 
     return NextResponse.json({ records });
   } catch (error) {
@@ -59,7 +54,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const body = await req.json();
-    console.log('[API] POST record for patientId:', patientId);
 
     await connectToDatabase();
     const user = await User.findOne({ workosId: (session as any).id });
@@ -72,7 +66,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
 
-    console.log('[API] Creating record with body keys:', Object.keys(body));
     // TODO [SECURITY - CRITICAL]: Mass assignment — full request body spread into DentalRecord.create
     // without field validation. An attacker can inject arbitrary fields including userId,
     // patientId (to associate record with another patient), or Mongoose internal fields.
