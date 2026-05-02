@@ -1,29 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, GenericTransaction } from '@repo/database';
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value) as any;
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: session.id }).lean() as any;
-}
+import { GenericTransaction } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { id } = await params;
-    const body = await request.json();
-    const { type, date, amount, concept, category, paymentMethod, notes } = body;
+    const { type, date, amount, concept, category, paymentMethod, notes } = await request.json();
 
     const transaction = await (GenericTransaction as any).findOneAndUpdate(
       { _id: id, userId: user._id },
@@ -51,8 +39,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { id } = await params;
     const transaction = await (GenericTransaction as any).findOneAndDelete({
