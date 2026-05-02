@@ -1,17 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Consultorio, ConsultorioBooking } from '@repo/database';
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value);
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: (session as any).id });
-}
+import { Consultorio, ConsultorioBooking } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 // ─── Recurrence expansion helpers ────────────────────────────────────────────
 
@@ -169,8 +158,8 @@ function expandBooking(b: BookingDoc, fromDate: Date, toDate: Date): ExpandedBoo
 // Without range  → returns raw booking rules (for the list view)
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { id } = await params;
     const { searchParams } = new URL(req.url);
     const from = searchParams.get('from');
@@ -248,8 +237,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 // ─── POST /api/consultorios/[id]/bookings ────────────────────────────────────
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { id: consultorioId } = await params;
 
     const consultorio = await Consultorio.findOne({ _id: consultorioId, userId: user._id });

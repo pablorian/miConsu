@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, PrestacionTemplate } from '@repo/database';
+import { PrestacionTemplate } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value);
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: (session as any).id });
-}
-
-/** PUT /api/prestaciones/[id] */
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { id } = await params;
     const { name, price, description } = await req.json();
@@ -40,11 +28,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-/** DELETE /api/prestaciones/[id] */
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { id } = await params;
     await (PrestacionTemplate as any).deleteOne({ _id: id, userId: user._id });

@@ -61,20 +61,11 @@ export default function PrestacionesEditor() {
     setError(null);
     try {
       const body = { name: form.name.trim(), price: parseFloat(form.price) || 0, description: form.description.trim() };
-      let res: Response;
-      if (editing) {
-        res = await fetch(`/api/prestaciones/${editing._id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      } else {
-        res = await fetch('/api/prestaciones', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-      }
+      const res = await fetch(editing ? `/api/prestaciones/${editing._id}` : '/api/prestaciones', {
+        method: editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
       const d = await res.json();
       if (!res.ok) { setError(d.error || 'Error al guardar'); return; }
       if (editing) {

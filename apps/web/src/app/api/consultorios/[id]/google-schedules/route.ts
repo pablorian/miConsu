@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Consultorio } from '@repo/database';
+import { Consultorio } from '@repo/database';
 import { getGoogleAuthClient, getGoogleCalendarClient } from '@/lib/google-calendar-sync';
+import { requireUser } from '@/lib/auth';
 
 /**
  * GET /api/consultorios/[id]/google-schedules
@@ -17,16 +16,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const session = await verifySession(token.value);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     if (!user.googleCalendarRefreshToken) {
       return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 400 });

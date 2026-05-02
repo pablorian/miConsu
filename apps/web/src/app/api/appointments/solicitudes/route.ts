@@ -1,26 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Appointment } from '@repo/database';
+import { Appointment } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 /**
  * GET /api/appointments/solicitudes
- * Returns appointments that have no linked patient (patientId is null/undefined).
- * These are bookings from the public booking form or Google Calendar events
- * that couldn't be auto-matched to an existing patient.
+ * Appointments without a linked patient (public booking / Google Calendar imports
+ * that couldn't be auto-matched).
  */
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const session = await verifySession(token.value);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const solicitudes = await (Appointment as any).find({
       userId: user._id,

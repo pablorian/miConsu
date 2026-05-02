@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase from '@repo/database';
-import { User, Payment } from '@repo/database';
+import { Payment } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 interface Params {
   params: Promise<{ id: string; paymentId: string }>;
@@ -10,18 +8,9 @@ interface Params {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const session = await verifySession(token.value);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+    const { user, error } = await requireUser();
+    if (error) return error;
     const { paymentId } = await params;
-    await connectToDatabase();
-
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const payment = await Payment.findOneAndDelete({ _id: paymentId, userId: user._id });
     if (!payment) return NextResponse.json({ error: 'Payment not found' }, { status: 404 });

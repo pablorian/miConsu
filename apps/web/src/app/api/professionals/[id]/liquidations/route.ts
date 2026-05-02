@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Professional, ProfessionalLiquidation } from '@repo/database';
+import { Professional, ProfessionalLiquidation } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value) as any;
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: session.id }).lean() as any;
-}
-
-// GET /api/professionals/[id]/liquidations?from=&to=
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { id: professionalId } = await params;
     const { searchParams } = new URL(req.url);
     const from = searchParams.get('from');
     const to = searchParams.get('to');
 
-    // Verify professional belongs to user
     const prof = await Professional.findOne({ _id: professionalId, userId: user._id }).lean();
     if (!prof) return NextResponse.json({ error: 'Professional not found' }, { status: 404 });
 
@@ -46,20 +33,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-// POST /api/professionals/[id]/liquidations
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { id: professionalId } = await params;
 
-    // Verify professional belongs to user
     const prof = await Professional.findOne({ _id: professionalId, userId: user._id }).lean();
     if (!prof) return NextResponse.json({ error: 'Professional not found' }, { status: 404 });
 
-    const body = await req.json();
-    const { amount, date, periodFrom, periodTo, notes } = body;
+    const { amount, date, periodFrom, periodTo, notes } = await req.json();
 
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: 'El monto debe ser mayor a 0' }, { status: 400 });

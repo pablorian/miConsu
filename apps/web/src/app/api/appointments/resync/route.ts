@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Appointment } from '@repo/database';
+import { Appointment } from '@repo/database';
 import { getGoogleCalendarClient } from '@/lib/google-calendar-sync';
 import { matchPatient } from '@/lib/patient-matching';
+import { requireUser } from '@/lib/auth';
 
 const PLACEHOLDER_NAMES = ['google calendar event', 'busy', ''];
 function isPlaceholder(v: string | undefined) {
@@ -36,16 +35,8 @@ function parseNameFromSummary(summary: string | null | undefined): string | unde
  */
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token');
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const session = await verifySession(token.value);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    await connectToDatabase();
-    const user = await User.findOne({ workosId: (session as any).id });
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     if (!user.googleCalendarRefreshToken) {
       return NextResponse.json({ error: 'Google Calendar not connected' }, { status: 400 });
@@ -53,7 +44,6 @@ export async function POST(req: NextRequest) {
 
     const calendar = getGoogleCalendarClient(user);
 
-    // Fetch events from the last 3 months
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
@@ -83,7 +73,6 @@ export async function POST(req: NextRequest) {
 
       const updates: any = {};
 
-      // Update name if currently a placeholder and we have a better value
       if (isPlaceholder(appt.patientName) && resolvedName && !isPlaceholder(resolvedName)) {
         updates.patientName = resolvedName;
       }
@@ -94,7 +83,6 @@ export async function POST(req: NextRequest) {
         updates.patientPhone = parsedInfo.phone;
       }
 
-      // Try to match patient if not yet linked
       if (!appt.patientId) {
         const matchName = parsedInfo.name || nameFromSummary;
         const matchedPatient = await matchPatient(user._id, {

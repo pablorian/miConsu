@@ -1,23 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, PrestacionTemplate } from '@repo/database';
+import { PrestacionTemplate } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value);
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: (session as any).id });
-}
-
-/** GET /api/prestaciones — list all templates for the current user */
 export async function GET() {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const items = await (PrestacionTemplate as any)
       .find({ userId: user._id })
@@ -31,11 +19,10 @@ export async function GET() {
   }
 }
 
-/** POST /api/prestaciones — create a new template */
 export async function POST(req: NextRequest) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const { name, price, description } = await req.json();
     if (!name?.trim()) {

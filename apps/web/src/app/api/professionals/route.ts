@@ -1,22 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/workos';
-import connectToDatabase, { User, Professional } from '@repo/database';
-
-async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token');
-  if (!token) return null;
-  const session = await verifySession(token.value) as any;
-  if (!session) return null;
-  await connectToDatabase();
-  return User.findOne({ workosId: session.id }).lean() as any;
-}
+import { Professional } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
     const professionals = await Professional.find({ userId: user._id }).sort({ name: 1 }).lean();
     return NextResponse.json({ professionals });
@@ -27,11 +16,10 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const { user, error } = await requireUser();
+    if (error) return error;
 
-    const body = await request.json();
-    const { name, email, color, percentage, obraSocialPercentages, consultorioId } = body;
+    const { name, email, color, percentage, obraSocialPercentages, consultorioId } = await request.json();
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
