@@ -17,14 +17,12 @@ export async function GET(request: NextRequest) {
   }
 
   await connectToDatabase();
-  // Find user by WorkOS ID
   const user = await User.findOne({ workosId: session.id });
 
   if (!user || !user.googleCalendarAccessToken) {
     return NextResponse.json({ error: 'Calendar not connected' }, { status: 400 });
   }
 
-  // Initialize OAuth client
   const oauth2Client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
@@ -36,7 +34,6 @@ export async function GET(request: NextRequest) {
     expiry_date: user.googleCalendarTokenExpiry?.getTime()
   });
 
-  // Handle Token Refresh if needed
   oauth2Client.on('tokens', async (tokens) => {
     if (tokens.access_token) {
       await User.findOneAndUpdate(
@@ -55,36 +52,28 @@ export async function GET(request: NextRequest) {
     const start = request.nextUrl.searchParams.get('start') || new Date().toISOString();
     const end = request.nextUrl.searchParams.get('end');
 
-    // 1. List all calendars (Primary + Holidays + Others)
-    const calendarList = await calendar.calendarList.list({
-      showHidden: true,
-    });
+    const calendarList = await calendar.calendarList.list({ showHidden: true });
     const calendars = calendarList.data.items || [];
 
-    console.log(`[GoogleAPI] Found ${calendars.length} calendars:`, calendars.map(c => c.summary));
-
-    // 2. Fetch events for each calendar
     const allEventsPromises = calendars.map(async (cal) => {
       if (!cal.id) return [];
       try {
-        console.log(`[GoogleAPI] Fetching events for ${cal.summary} (${cal.id})`);
         const response = await calendar.events.list({
           calendarId: cal.id,
           timeMin: start,
           timeMax: end || undefined,
-          maxResults: 50, // Limit per calendar to avoid timeout
+          maxResults: 50,
           singleEvents: true,
           orderBy: 'startTime',
         });
 
-        // Map events to include color from calendar if event doesn't have one
         return (response.data.items || []).map(event => ({
           ...event,
           resource: {
             backgroundColor: cal.backgroundColor,
             foregroundColor: cal.foregroundColor,
             calendarSummary: cal.summary,
-            calendarId: cal.id // Critical for filtering
+            calendarId: cal.id
           }
         }));
       } catch (e) {
@@ -94,12 +83,9 @@ export async function GET(request: NextRequest) {
     });
 
     const results = await Promise.all(allEventsPromises);
-    const flattenedEvents = results.flat();
-
-    return NextResponse.json(flattenedEvents);
+    return NextResponse.json(results.flat());
   } catch (error) {
     console.error('Google Calendar API Error:', error);
-    // If error is 401, token might be revoked or invalid.
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
   }
 }
