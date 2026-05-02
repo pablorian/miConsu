@@ -64,6 +64,13 @@ function isPlaceholder(value: string | undefined): boolean {
   return !value || PLACEHOLDER_NAMES.includes(value.toLowerCase().trim());
 }
 
+// TODO [SECURITY - HIGH]: No webhook signature verification. The endpoint only checks
+// X-Goog-Channel-ID but Google does NOT sign its calendar push notifications with HMAC.
+// An attacker who discovers this URL can send forged webhook payloads with a valid
+// channelId (guessable from DB or logs), triggering a full calendar sync for any user.
+// Fix: use a secret token embedded in the channel token field when registering the
+// webhook (googleChannelId includes a random suffix), and verify X-Goog-Channel-Token
+// matches the expected value stored for that user in the DB.
 // Note: In development with local tunnel, ensure the tunnel URL is recognized by Google.
 export async function POST(request: NextRequest) {
   const channelId = request.headers.get('X-Goog-Channel-ID');

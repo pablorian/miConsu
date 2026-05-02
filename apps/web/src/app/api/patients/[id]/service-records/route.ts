@@ -67,6 +67,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Patient not found' }, { status: 404 });
     }
 
+    // TODO [SECURITY - CRITICAL]: Mass assignment — full request body spread into ServiceRecord.create
+    // without field validation. An attacker can set arbitrary fields including userId, paid status,
+    // price, or financial fields, corrupting billing data.
+    // Fix: destructure only expected fields from body (service, date, price, notes, etc.).
     const record = await ServiceRecord.create({
       patientId,
       ...body

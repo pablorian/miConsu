@@ -174,6 +174,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (error.code === 401 || (error.response && error.response.status === 401)) {
       return NextResponse.json({ error: 'Google Auth Expired. Please reconnect.' }, { status: 401 });
     }
-    return NextResponse.json({ error: 'Internal Server Error' + error.message }, { status: 500 });
+    // TODO [SECURITY - HIGH]: Error message disclosure — error.message concatenated into the
+    // response body exposes internal Google API error details, stack hints, file paths, or
+    // auth token fragments to the client. Always return a generic message to end users.
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

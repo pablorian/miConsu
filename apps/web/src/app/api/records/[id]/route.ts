@@ -43,6 +43,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    // TODO [SECURITY - CRITICAL]: Mass assignment — the entire request body is passed directly
+    // to findByIdAndUpdate with no field whitelist. An attacker can overwrite any field,
+    // including patientId (to reassign the record to a different patient), or inject
+    // arbitrary MongoDB operators like $set/$unset affecting other documents.
+    // Fix: explicitly pick only the fields that should be updatable, e.g.:
+    //   const { date, notes, treatment, tooth } = body;
+    //   await DentalRecord.findByIdAndUpdate(id, { date, notes, treatment, tooth }, { new: true });
     const updatedRecord = await DentalRecord.findByIdAndUpdate(id, body, { new: true });
 
     return NextResponse.json({ record: updatedRecord });

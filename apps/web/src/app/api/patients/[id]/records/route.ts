@@ -73,6 +73,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     console.log('[API] Creating record with body keys:', Object.keys(body));
+    // TODO [SECURITY - CRITICAL]: Mass assignment — full request body spread into DentalRecord.create
+    // without field validation. An attacker can inject arbitrary fields including userId,
+    // patientId (to associate record with another patient), or Mongoose internal fields.
+    // Fix: destructure only the expected fields from body before creating the document.
     const record = await DentalRecord.create({
       patientId,
       ...body

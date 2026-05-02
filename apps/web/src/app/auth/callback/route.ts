@@ -44,6 +44,16 @@ export async function GET(request: NextRequest) {
 
     const oauthPending = request.cookies.get('oauth_pending')?.value;
 
+    // TODO [SECURITY - HIGH]: Open redirect via unvalidated x-forwarded-host header.
+    // An attacker who can set HTTP headers (e.g. via misconfigured proxy, SSRF, or
+    // header injection) can point x-forwarded-host to any domain, causing the auth
+    // callback to redirect the authenticated user (with their session token cookie)
+    // to an attacker-controlled site. The cookie is SameSite=lax so it won't travel
+    // cross-origin, but the redirect itself is exploitable in phishing / session fixation.
+    // Fix: validate forwardedHost against an allowlist of known domains
+    // (process.env.ALLOWED_HOSTS or NEXT_PUBLIC_GOOGLE_WEBHOOK_URL), and fall back to
+    // request.nextUrl.origin when the header value doesn't match.
+
     // Build the redirect URL using the public host (devtunnel/prod) instead
     // of `request.nextUrl`, which falls back to the upstream `host` header
     // (`localhost:3000`) when behind a tunnel/proxy. Otherwise the user gets
