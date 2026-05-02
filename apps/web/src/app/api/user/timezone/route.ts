@@ -1,44 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectToDatabase, { User } from '@repo/database';
-import { verifySession } from '@/lib/session';
+import { User } from '@repo/database';
+import { requireUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const session: any = await verifySession(token);
-  if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  await connectToDatabase();
-  const user = await User.findOne({ workosId: session.id });
-
-  if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-
+  const { user, error } = await requireUser();
+  if (error) return error;
   return NextResponse.json({ timezone: user.timezone || 'America/Argentina/Buenos_Aires' });
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get('token')?.value;
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const session: any = await verifySession(token);
-  if (!session || !session.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { user, error } = await requireUser();
+  if (error) return error;
 
   try {
     const { timezone } = await request.json();
-
     if (!timezone) {
       return NextResponse.json({ error: 'Timezone is required' }, { status: 400 });
     }
 
-    await connectToDatabase();
-    await User.findOneAndUpdate(
-      { workosId: session.id },
-      { timezone: timezone }
-    );
-
+    await User.findByIdAndUpdate(user._id, { timezone });
     return NextResponse.json({ success: true, timezone });
   } catch (error) {
     console.error('Failed to update timezone', error);
